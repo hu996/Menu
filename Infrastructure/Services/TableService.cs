@@ -24,18 +24,17 @@ public sealed class TableService : ITableService
         if (branch is null)
             return null;
 
-        var name = Normalize(input.Name);
+        var name = NormalizeTableNumber(input.Name);
         if (name is null)
-            throw new ArgumentException("A table name is required.");
+            throw new ArgumentException("A table number is required and must contain digits only.");
         if (await _db.RestaurantTables.AnyAsync(x => x.BranchId == branchId && x.Name == name, cancellationToken))
-            throw new ArgumentException("A table with this name already exists in the branch.");
+            throw new ArgumentException("A table with this number already exists in the branch.");
 
         var table = new RestaurantTable
         {
             TenantId = branch.TenantId,
             BranchId = branch.Id,
             Name = name,
-            NameAr = Normalize(input.NameAr),
             IsActive = true
         };
         _db.RestaurantTables.Add(table);
@@ -49,14 +48,14 @@ public sealed class TableService : ITableService
         var table = await _db.RestaurantTables.Include(x => x.Branch).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (table is null)
             return null;
-        var name = Normalize(input.Name);
+        var name = NormalizeTableNumber(input.Name);
         if (name is null)
-            throw new ArgumentException("A table name is required.");
+            throw new ArgumentException("A table number is required and must contain digits only.");
         if (await _db.RestaurantTables.AnyAsync(x => x.BranchId == table.BranchId && x.Id != id && x.Name == name, cancellationToken))
-            throw new ArgumentException("A table with this name already exists in the branch.");
+            throw new ArgumentException("A table with this number already exists in the branch.");
 
         table.Name = name;
-        table.NameAr = Normalize(input.NameAr);
+        table.NameAr = null;
         table.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
         return ToDto(table);
@@ -82,4 +81,10 @@ public sealed class TableService : ITableService
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? NormalizeTableNumber(string? value)
+    {
+        var normalized = Normalize(value);
+        return normalized is not null && normalized.All(char.IsDigit) ? normalized : null;
+    }
 }

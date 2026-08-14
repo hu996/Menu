@@ -19,9 +19,6 @@ public sealed class TableInputViewModel
     public Guid BranchId { get; set; }
     public Guid? Id { get; set; }
 
-    [Required, StringLength(120)]
+    [Required, StringLength(20), RegularExpression("^[0-9]+$", ErrorMessage = "Enter a table number using digits only.")]
     public string Name { get; set; } = string.Empty;
-
-    [StringLength(120)]
-    public string? NameAr { get; set; }
 }

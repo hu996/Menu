@@ -41,7 +41,7 @@ public sealed class TablesController : Controller
 
         try
         {
-            var created = await _tableService.CreateAsync(model.BranchId, new RestaurantTableInput(model.Name, model.NameAr), cancellationToken);
+            var created = await _tableService.CreateAsync(model.BranchId, new RestaurantTableInput(model.Name, null), cancellationToken);
             if (created is null)
                 return NotFound();
 
@@ -72,7 +72,7 @@ public sealed class TablesController : Controller
 
         try
         {
-            var updated = await _tableService.UpdateAsync(model.Id.Value, new RestaurantTableInput(model.Name, model.NameAr), cancellationToken);
+            var updated = await _tableService.UpdateAsync(model.Id.Value, new RestaurantTableInput(model.Name, null), cancellationToken);
             if (updated is null)
                 return NotFound();
 
