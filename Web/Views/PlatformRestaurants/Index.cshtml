@@ -1,0 +1,41 @@
+@model RestaurantMenuPlatform.Web.Models.PlatformRestaurantIndexViewModel
+@{ ViewData["Title"] = UiText.Get("Restaurants"); }
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">@UiText.Get("Platform administration")</span><h1>@UiText.Get("Restaurants")</h1><p class="muted">@UiText.Get("Provision and support restaurant workspaces from one platform view.")</p></div>
+    <a class="btn btn-primary" asp-action="Create">@UiText.Get("Add restaurant")</a>
+</div>
+
+<form method="get" class="filter-bar" aria-label="@UiText.Get("Restaurant filters")">
+    <label class="filter-field"><span>@UiText.Get("Search")</span><input type="search" name="search" value="@Model.Search" placeholder="@UiText.Get("Search restaurants")" /></label>
+    <label class="filter-field"><span>@UiText.Get("Status")</span><select name="isActive">
+        <option value="">@UiText.Get("All statuses")</option>
+        <option value="true" selected="@(Model.IsActive == true)">@UiText.Get("Active")</option>
+        <option value="false" selected="@(Model.IsActive == false)">@UiText.Get("Inactive")</option>
+    </select></label>
+    <div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Apply filters")</button><a class="btn btn-ghost" asp-action="Index">@UiText.Get("Reset")</a></div>
+</form>
+
+<section class="surface">
+    <div class="data-table platform-restaurant-table" data-columns="6">
+        <div class="table-row table-heading"><span>@UiText.Get("Restaurant")</span><span>@UiText.Get("Owner")</span><span>@UiText.Get("Plan")</span><span>@UiText.Get("Usage")</span><span>@UiText.Get("Status")</span><span>@UiText.Get("Actions")</span></div>
+        @if (Model.Items.Count == 0)
+        {
+            <div class="empty-state"><span class="eyebrow">@UiText.Get("No restaurants yet")</span><h2>@UiText.Get("Provision your first restaurant workspace.")</h2><p class="muted">@UiText.Get("Keep provisioning short; the restaurant owner builds the operational catalog.")</p><a class="btn btn-primary" asp-action="Create">@UiText.Get("Add restaurant")</a></div>
+        }
+        else
+        {
+            foreach (var restaurant in Model.Items)
+            {
+                <div class="table-row">
+                    <span><strong>@UiText.Business(restaurant.Name, restaurant.Name, restaurant.NameAr)</strong><small>/@restaurant.Slug</small></span>
+                    <span>@(restaurant.OwnerName ?? UiText.Get("Unassigned"))<small>@(restaurant.OwnerEmail ?? UiText.Get("No owner email"))</small></span>
+                    <span>@restaurant.PlanName<small>@restaurant.Status</small></span>
+                    <span>@restaurant.Branches @UiText.Get("branches") · @restaurant.Menus @UiText.Get("menus") · @restaurant.Products @UiText.Get("products")</span>
+                    <span><span class="status @(restaurant.IsActive ? "status-live" : "status-muted")">@(restaurant.IsActive ? UiText.Get("Active") : UiText.Get("Inactive"))</span></span>
+                    <span class="action-row"><a class="text-link" asp-action="Details" asp-route-id="@restaurant.Id">@UiText.Get("Open")</a><a class="text-link" asp-action="Details" asp-route-id="@restaurant.Id">@UiText.Get("View owner")</a></span>
+                </div>
+            }
+        }
+    </div>
+</section>

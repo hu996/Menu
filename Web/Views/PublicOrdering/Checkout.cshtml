@@ -1,0 +1,61 @@
+@model RestaurantMenuPlatform.Web.Models.CheckoutViewModel
+@{
+    Layout = null;
+    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var language = isArabic ? "ar" : "en";
+    var title = isArabic ? "تأكيد الطلب" : "Checkout";
+    var nameLabel = isArabic ? "الاسم" : "Name";
+    var phoneLabel = isArabic ? "رقم الهاتف" : "Phone";
+    var notesLabel = isArabic ? "ملاحظات" : "Notes";
+    var placeOrderLabel = isArabic ? "تأكيد الطلب" : "Place order";
+    var editLabel = isArabic ? "تعديل الطلب" : "Edit order";
+    var itemLabel = isArabic ? "أصناف" : "items";
+    var queryContext = string.IsNullOrWhiteSpace(Model.Cart.QrCodeCode) ? string.Empty : $"&source=qr&code={Uri.EscapeDataString(Model.Cart.QrCodeCode)}";
+    var tableLabel = isArabic ? (Model.Cart.TableNameAr ?? Model.Cart.TableName) : Model.Cart.TableName;
+    var cartUrl = $"/menu/{Model.RestaurantSlug}/{Model.BranchSlug}/cart?lang={language}{queryContext}";
+}
+<!doctype html>
+<html lang="@language" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@title</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="public-menu-body">
+    <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
+    <main class="public-menu public-order-page public-checkout-page" id="main-content" tabindex="-1">
+        <header class="public-hero public-hero-compact">
+            <div class="public-hero-copy"><span class="eyebrow">@Model.BranchSlug</span><h1>@title</h1><p>@Model.Cart.Total.ToString("0.00") @Model.Cart.Currency · @Model.Cart.Lines.Sum(x => x.Quantity) @itemLabel</p></div>
+        </header>
+        <section class="public-order-card public-checkout-layout">
+            <div class="public-checkout-main">
+                @if (!string.IsNullOrWhiteSpace(tableLabel))
+                {
+                    <div class="public-order-context"><span aria-hidden="true">◎</span><strong>@(isArabic ? "الطلب من الطاولة" : "Ordering from")</strong><span>@tableLabel</span></div>
+                }
+                <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                <form action="/menu/@Model.RestaurantSlug/@Model.BranchSlug/checkout?lang=@language@queryContext" method="post" class="form-stack" data-public-checkout>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="IdempotencyKey" value="@Model.IdempotencyKey" />
+                    <label class="form-field"><span>@nameLabel</span><input name="CustomerName" value="@Model.CustomerName" autocomplete="name" required maxlength="160" /><span asp-validation-for="CustomerName" class="field-validation"></span></label>
+                    <label class="form-field"><span>@phoneLabel</span><input name="CustomerPhone" value="@Model.CustomerPhone" autocomplete="tel" required maxlength="40" inputmode="tel" /><span asp-validation-for="CustomerPhone" class="field-validation"></span></label>
+                    <label class="form-field"><span>@notesLabel</span><textarea name="Notes" maxlength="500" rows="4">@Model.Notes</textarea><span asp-validation-for="Notes" class="field-validation"></span></label>
+                    <button class="public-action public-action-primary" type="submit">@placeOrderLabel <span aria-hidden="true">·</span> @Model.Cart.Total.ToString("0.00") @Model.Cart.Currency</button>
+                </form>
+                <a class="text-link" href="@cartUrl"><span aria-hidden="true">←</span> @editLabel</a>
+            </div>
+            <aside class="public-checkout-summary" aria-label="@(isArabic ? "ملخص الطلب" : "Order summary")">
+                <span class="eyebrow">@(isArabic ? "ملخص" : "Summary")</span>
+                <h2>@(isArabic ? "طلبك" : "Your order")</h2>
+                @foreach (var line in Model.Cart.Lines)
+                {
+                    <div class="public-summary-line"><span>@line.Quantity × @line.ProductName</span><strong>@line.LineTotal.ToString("0.00") @line.Currency</strong></div>
+                }
+                <div class="public-summary-total"><span>@(isArabic ? "الإجمالي" : "Total")</span><strong>@Model.Cart.Total.ToString("0.00") @Model.Cart.Currency</strong></div>
+            </aside>
+        </section>
+    </main>
+    <script src="~/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+@model IReadOnlyList<RestaurantMenuPlatform.Application.DTOs.AuditLogDto>
+@{
+    ViewData["Title"] = "Audit log";
+}
+
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Governance</span>
+        <h1>Audit log</h1>
+        <p class="muted">A tenant-scoped record of meaningful workspace changes.</p>
+    </div>
+</div>
+
+<div class="audit-list">
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state"><span class="eyebrow">No activity yet</span><h2>Changes will appear here.</h2></div>
+    }
+    else
+    {
+        @foreach (var entry in Model)
+        {
+            <article class="audit-entry">
+                <div>
+                    <span class="eyebrow">@entry.EntityType · @entry.Action</span>
+                    <h2>@entry.ActorDisplayName</h2>
+                    <time datetime="@entry.CreatedAtUtc.ToString("O")">@entry.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</time>
+                </div>
+                <div class="audit-values">
+                    @if (entry.OldValueJson is not null) { <details><summary>Before</summary><code>@entry.OldValueJson</code></details> }
+                    @if (entry.NewValueJson is not null) { <details open><summary>After</summary><code>@entry.NewValueJson</code></details> }
+                </div>
+            </article>
+        }
+    }
+</div>

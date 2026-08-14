@@ -1,0 +1,220 @@
+@model RestaurantMenuPlatform.Web.Models.PublicMenuPageViewModel
+@{
+    Layout = null;
+    var menu = Model.Menu;
+    var basket = Model.Basket;
+    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var language = isArabic ? "ar" : "en";
+    var menuLabel = isArabic ? "القائمة" : "Menu";
+    var menusLabel = isArabic ? "القوائم" : "Menus";
+    var languageLabel = isArabic ? "اللغة" : "Language";
+    var categoryLabel = isArabic ? "الفئة" : "Category";
+    var subcategoryLabel = isArabic ? "فئة فرعية" : "Subcategory";
+    var ingredientsLabel = isArabic ? "المكونات" : "Ingredients";
+    var allergensLabel = isArabic ? "يحتوي على" : "Contains";
+    var detailsLabel = isArabic ? "عرض التفاصيل" : "View details";
+    var quickAddLabel = isArabic ? "أضف إلى السلة" : "Add to basket";
+    var customizeLabel = isArabic ? "خصّص قبل الإضافة" : "Customize before adding";
+    var unavailableLabel = isArabic ? "غير متوفر حالياً" : "Currently unavailable";
+    var noItemsLabel = isArabic ? "لا توجد أصناف متاحة في هذه القائمة حالياً." : "There are no items in this menu right now.";
+    var imageLabel = isArabic ? "صورة المنتج" : "Product image";
+    var basketLabel = isArabic ? "السلة" : "Basket";
+    var viewBasketLabel = isArabic ? "عرض السلة" : "View basket";
+    var itemLabel = isArabic ? "صنف" : "items";
+    var orderAtTableLabel = isArabic ? "الطلب من طاولتك" : "Order from your table";
+    var tableLabel = isArabic ? (menu.TableNameAr ?? menu.TableName) : menu.TableName;
+    var itemCount = basket.Lines.Sum(x => x.Quantity);
+    var queryContext = string.Empty;
+    var source = Context.Request.Query["source"].ToString();
+    var code = Context.Request.Query["code"].ToString();
+    if (string.IsNullOrWhiteSpace(code)) code = menu.QrCodeCode ?? string.Empty;
+    if (string.IsNullOrWhiteSpace(source) && !string.IsNullOrWhiteSpace(code)) source = "qr";
+    if (!string.IsNullOrWhiteSpace(source)) queryContext += $"&source={Uri.EscapeDataString(source)}";
+    if (!string.IsNullOrWhiteSpace(code)) queryContext += $"&code={Uri.EscapeDataString(code)}";
+    var menuUrl = $"/menu/{menu.RestaurantSlug}/{menu.BranchSlug}?lang={language}{queryContext}";
+    var basketUrl = $"/menu/{menu.RestaurantSlug}/{menu.BranchSlug}/cart?lang={language}{queryContext}";
+    var heroStyle = string.IsNullOrWhiteSpace(menu.CoverImageUrl)
+        ? string.Empty
+        : $"background-image:linear-gradient(180deg,rgba(35,25,19,.18),rgba(35,25,19,.82)),url('{menu.CoverImageUrl}')";
+}
+<!doctype html>
+<html lang="@language" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="@(menu.BrandPrimaryColor ?? "#2E241F")" />
+    <title>@menu.RestaurantName · @menu.MenuName</title>
+    <style>:root { --public-primary: @(menu.BrandPrimaryColor ?? "#2E241F"); --public-accent: @(menu.BrandAccentColor ?? "#B88A44"); }</style>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="public-menu-body">
+    <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
+    <main class="public-menu" id="main-content" tabindex="-1" data-public-menu>
+        <header class="public-hero @(string.IsNullOrWhiteSpace(menu.CoverImageUrl) ? string.Empty : "has-cover")" style="@heroStyle">
+            <div class="public-hero-copy">
+                @if (!string.IsNullOrWhiteSpace(menu.LogoUrl))
+                {
+                    <img class="public-brand-logo" src="@menu.LogoUrl" alt="@menu.RestaurantName" data-public-image />
+                }
+                <span class="eyebrow">@menu.BranchName</span>
+                <h1>@menu.RestaurantName</h1>
+                @if (!string.IsNullOrWhiteSpace(tableLabel))
+                {
+                    <p class="public-context-chip"><span aria-hidden="true">◎</span> @orderAtTableLabel · @tableLabel</p>
+                }
+                <p class="public-hero-subtitle">@menu.Menus.Count @((menu.Menus.Count == 1 ? menuLabel : menusLabel))</p>
+                <span class="public-route">@menu.RestaurantSlug / @menu.BranchSlug</span>
+                <div class="language-switch" aria-label="@languageLabel">
+                    <a href="?lang=en@(queryContext)" hreflang="en" lang="en" aria-current="@(isArabic ? "false" : "true")">English</a>
+                    <a href="?lang=ar@(queryContext)" hreflang="ar" lang="ar" dir="rtl" aria-current="@(isArabic ? "true" : "false")">العربية</a>
+                </div>
+            </div>
+            <a class="public-basket-entry" data-public-basket-link href="@basketUrl" aria-label="@basketLabel">
+                <span class="public-basket-icon" aria-hidden="true">◎</span>
+                <span><strong>@basketLabel</strong><small><span data-basket-count>@itemCount</span> @itemLabel</small></span>
+                <b data-basket-total>@basket.Total.ToString("0.00") @basket.Currency</b>
+            </a>
+        </header>
+
+        @if (TempData["Error"] is string error)
+        {
+            <div class="public-feedback feedback-error" role="alert">@error</div>
+        }
+        @if (TempData["Success"] is string success)
+        {
+            <div class="public-feedback feedback-success" role="status">@success</div>
+        }
+
+        @if (menu.Menus.Count > 1)
+        {
+            <nav class="public-menu-switcher" aria-label="@(isArabic ? "القوائم" : "Menus")">
+                <span class="public-nav-label">@(isArabic ? "استكشف" : "Explore")</span>
+                <div class="public-menu-jump">
+                    @for (var menuIndex = 0; menuIndex < menu.Menus.Count; menuIndex++)
+                    {
+                        <a href="#public-menu-@menuIndex">@menu.Menus[menuIndex].MenuName</a>
+                    }
+                </div>
+            </nav>
+        }
+
+        @for (var menuIndex = 0; menuIndex < menu.Menus.Count; menuIndex++)
+        {
+            var menuSection = menu.Menus[menuIndex];
+            <section id="public-menu-@menuIndex" class="public-menu-section">
+                <header class="public-menu-heading">
+                    <span class="eyebrow">@menuLabel @(menuIndex + 1) · @(menuSection.MenuTypeCode ?? string.Empty)</span>
+                    <h2>@menuSection.MenuName</h2>
+                    @if (!string.IsNullOrWhiteSpace(menuSection.Description))
+                    {
+                        <p class="muted">@menuSection.Description</p>
+                    }
+                </header>
+
+                @if (menuSection.Categories.Count > 0)
+                {
+                    <nav class="category-nav" aria-label="@menuSection.MenuName">
+                        @for (var categoryIndex = 0; categoryIndex < menuSection.Categories.Count; categoryIndex++)
+                        {
+                            <a href="#menu-@menuIndex-category-@categoryIndex">@menuSection.Categories[categoryIndex].Name</a>
+                        }
+                    </nav>
+                    @for (var categoryIndex = 0; categoryIndex < menuSection.Categories.Count; categoryIndex++)
+                    {
+                        var category = menuSection.Categories[categoryIndex];
+                        <section class="public-category @(category.ParentName is null ? string.Empty : "public-subcategory")" id="menu-@menuIndex-category-@categoryIndex">
+                            <div class="section-heading">
+                                <span class="eyebrow">@(category.ParentName is null ? categoryLabel : subcategoryLabel)</span>
+                                <h3>@category.Name</h3>
+                                @if (category.ParentName is not null)
+                                {
+                                    <small class="muted">@category.ParentName</small>
+                                }
+                            </div>
+                            <div class="public-items">
+                                @foreach (var item in category.Items)
+                                {
+                                    var productUrl = $"/menu/{menu.RestaurantSlug}/{menu.BranchSlug}/product/{item.Id}?lang={language}{queryContext}";
+                                    var hasRequiredCustomization = item.Modifiers.Any(x => x.IsRequired || x.MinSelections > 0);
+                                    var quickLine = basket.Lines.SingleOrDefault(x => x.MenuItemId == item.Id && x.ModifierOptionIds.Count == 0);
+                                    <article class="public-item @(item.IsAvailable ? string.Empty : "is-unavailable")" data-public-card data-item-id="@item.Id" data-product-href="@productUrl" tabindex="0" aria-label="@detailsLabel: @item.Name">
+                                        <a class="public-product-link public-item-media" href="@productUrl" aria-label="@detailsLabel: @item.Name" data-image-frame>
+                                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                            {
+                                                <img src="@item.ImageUrl" alt="@item.Name" loading="lazy" data-public-image data-fallback-label="@imageLabel" />
+                                            }
+                                            else
+                                            {
+                                                <span class="public-image-placeholder" aria-label="@imageLabel"><span aria-hidden="true">◎</span><small>@imageLabel</small></span>
+                                            }
+                                        </a>
+                                        <div class="public-item-copy">
+                                            <div class="public-item-kicker">@(item.Modifiers.Count > 0 ? (isArabic ? "يُحضّر حسب الطلب" : "Made to order") : (isArabic ? "من مطبخنا" : "From our kitchen"))</div>
+                                            <div class="public-item-title">
+                                                <div>
+                                                    <a class="public-product-name" href="@productUrl"><h3>@item.Name</h3></a>
+                                                    @if (!item.IsAvailable)
+                                                    {
+                                                        <span class="public-availability-badge">@unavailableLabel</span>
+                                                    }
+                                                </div>
+                                                <strong>@item.Price.ToString("0.00") @item.Currency</strong>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                                            {
+                                                <a class="public-product-description" href="@productUrl">@item.Description</a>
+                                            }
+                                            @if (item.Ingredients.Count > 0)
+                                            {
+                                                <small><span class="public-label">@ingredientsLabel:</span> @string.Join(isArabic ? "، " : ", ", item.Ingredients)</small>
+                                            }
+                                            @if (item.Allergens.Count > 0)
+                                            {
+                                                <small><span class="public-label">@allergensLabel:</span> @string.Join(isArabic ? "، " : ", ", item.Allergens)</small>
+                                            }
+                                            <div class="public-card-actions">
+                                                <a class="public-action public-action-secondary" href="@productUrl">@detailsLabel</a>
+                                                @if (item.IsAvailable && hasRequiredCustomization)
+                                                {
+                                                    <a class="public-action" href="@productUrl">@customizeLabel</a>
+                                                }
+                                                else if (item.IsAvailable)
+                                                {
+                                                    <form action="/menu/@menu.RestaurantSlug/@menu.BranchSlug/cart/add" method="post" class="public-add-form" data-public-add-form data-public-ajax-form data-cart-update-url="/menu/@menu.RestaurantSlug/@menu.BranchSlug/cart/update">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="itemId" value="@item.Id" />
+                                                        <input type="hidden" name="quantity" value="1" />
+                                                        <input type="hidden" name="stayOnMenu" value="true" />
+                                                        <button class="public-action public-action-quick" type="submit"><span>@quickAddLabel</span><span class="public-action-price">· @item.Price.ToString("0.00") @item.Currency</span></button>
+                                                        <span class="public-inline-feedback" data-form-feedback role="status" aria-live="polite"></span>
+                                                    </form>
+                                                    <div class="public-card-quantity" data-card-quantity data-cart-key="@(quickLine?.Key ?? string.Empty)" data-cart-update-url="/menu/@menu.RestaurantSlug/@menu.BranchSlug/cart/update" @(quickLine is null ? "hidden" : string.Empty)>
+                                                        <button type="button" data-card-quantity-action="decrease" aria-label="@(isArabic ? "تقليل الكمية" : "Decrease quantity")">−</button>
+                                                        <span data-card-quantity-value>@(quickLine?.Quantity ?? 0)</span>
+                                                        <button type="button" data-card-quantity-action="increase" aria-label="@(isArabic ? "زيادة الكمية" : "Increase quantity")">+</button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        </section>
+                    }
+                }
+                else
+                {
+                    <div class="public-empty-state">@noItemsLabel</div>
+                }
+            </section>
+        }
+
+        <footer class="public-footer"><strong>@menu.RestaurantName</strong><span>@menu.BranchName</span></footer>
+    </main>
+    <div class="public-basket-bar" data-public-basket-bar data-has-items="@(itemCount > 0 ? "true" : "false")">
+        <div><strong><span data-basket-count>@itemCount</span> @itemLabel</strong><small data-basket-total>@basket.Total.ToString("0.00") @basket.Currency</small></div>
+        <a class="public-action" href="@basketUrl">@viewBasketLabel <span aria-hidden="true">→</span></a>
+    </div>
+    <script src="~/js/site.js"></script>
+</body>
+</html>

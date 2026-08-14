@@ -1,0 +1,11 @@
+@model RestaurantMenuPlatform.Web.Models.LookupTypeViewModel
+@{ ViewData["Title"] = "Edit lookup type"; }
+<div class="page-header"><div><span class="eyebrow">Configuration center</span><h1>Edit @Model.Code</h1></div><a class="text-link" asp-action="Index">Back to types</a></div>
+@if (Model.IsGlobal && !User.IsInRole("PlatformAdmin"))
+{
+    <div class="notice-card"><strong>Global platform type</strong><p class="muted">This type is maintained by the platform owner. Its @Model.ValueCount visible values are read-only here.</p></div>
+}
+else
+{
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="form-stack premium-form narrow-form"><div asp-validation-summary="ModelOnly" class="validation"></div><section class="form-section"><div class="form-section-heading"><span class="eyebrow">Configuration</span><h2>Lookup type</h2><p>The stable code remains read-only; update the display copy and ordering.</p></div><div class="form-grid"><div class="form-field"><label asp-for="Code"></label><input asp-for="Code" readonly /></div><div class="form-field"><label asp-for="SortOrder"></label><input asp-for="SortOrder" type="number" min="0" /></div><div class="form-field"><label asp-for="NameEn"></label><input asp-for="NameEn" /></div><div class="form-field"><label asp-for="NameAr"></label><input asp-for="NameAr" dir="rtl" /></div><div class="form-field form-field-full"><label asp-for="Description"></label><textarea asp-for="Description" rows="3"></textarea></div></div></section>@Html.AntiForgeryToken()<div class="form-actions-sticky"><a class="btn btn-secondary" asp-action="Index">Cancel</a><button class="btn btn-primary" type="submit">Save type</button></div></form>
+}

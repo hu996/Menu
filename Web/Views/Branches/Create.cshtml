@@ -1,0 +1,40 @@
+@model RestaurantMenuPlatform.Web.Models.BranchViewModel
+@{ ViewData["Title"] = "Add branch"; var tenantSlug = User.FindFirst("tenant_slug")?.Value ?? Context.Request.RouteValues["tenantSlug"]?.ToString(); var tenantPath = string.IsNullOrWhiteSpace(tenantSlug) ? string.Empty : $"/r/{Uri.EscapeDataString(tenantSlug)}"; }
+<div class="page-header"><span class="eyebrow">Operations</span><h1>Add a branch</h1><p class="muted">Give guests a clear, reliable location to visit.</p></div>
+<form action="@(tenantPath)/Branches/Create" method="post" class="form-stack premium-form">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    @if (ViewData["EntitlementError"] is string entitlementError)
+    {
+        <section class="business-rule-feedback" role="alert"><strong>@UiText.Get("Plan limit reached")</strong><p>@UiText.Feedback(entitlementError)</p><a class="btn btn-secondary" href="@(tenantPath)/Billing/Index">@UiText.Get("Review plans")</a></section>
+    }
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">Identity</span><h2>Branch information</h2><p>Use the name guests will recognize on menus and QR links.</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="Name"></label><input asp-for="Name" /><span asp-validation-for="Name" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="NameAr"></label><input asp-for="NameAr" dir="rtl" /></div>
+            <div class="form-field form-field-full"><label asp-for="Address"></label><input asp-for="Address" /><span class="field-hint">Public-facing address.</span></div>
+            <div class="form-field"><label asp-for="Phone"></label><input asp-for="Phone" autocomplete="tel" /></div>
+        </div>
+    </section>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">Location & service</span><h2>Operational details</h2><p>Coordinates and opening hours help guests find the right branch.</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="Latitude"></label><input asp-for="Latitude" type="number" step="0.000001" inputmode="decimal" /></div>
+            <div class="form-field"><label asp-for="Longitude"></label><input asp-for="Longitude" type="number" step="0.000001" inputmode="decimal" /></div>
+            <div class="form-field form-field-full"><label asp-for="OpeningHours"></label><textarea asp-for="OpeningHours" rows="4"></textarea><span class="field-hint">Use the format your team already maintains.</span></div>
+        </div>
+    </section>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">Branding</span><h2>Branch overrides</h2><p>Leave the inherited values unchanged when this branch should use restaurant defaults.</p></div>
+        @if (Model.CanCustomizeBranding)
+        {
+            <div class="form-grid"><div class="form-field"><label asp-for="BrandPrimaryColorOverride"></label><input asp-for="BrandPrimaryColorOverride" type="color" /></div><div class="form-field"><label asp-for="BrandAccentColorOverride"></label><input asp-for="BrandAccentColorOverride" type="color" /></div></div>
+        }
+        else
+        {
+            <p class="field-hint">Branch color overrides are available on plans that include custom branding. This branch will use the restaurant defaults.</p>
+        }
+    </section>
+    @Html.AntiForgeryToken()
+    <div class="form-actions-sticky"><a class="btn btn-secondary" href="@(tenantPath)/Branches/Index">Cancel</a><button class="btn btn-primary" type="submit">Create branch</button></div>
+</form>

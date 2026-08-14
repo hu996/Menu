@@ -1,0 +1,43 @@
+@model RestaurantMenuPlatform.Web.Models.TableManagementViewModel
+@{ ViewData["Title"] = "Tables"; var tenantSlug = User.FindFirst("tenant_slug")?.Value ?? Context.Request.RouteValues["tenantSlug"]?.ToString() ?? string.Empty; var tenantPath = $"/r/{Uri.EscapeDataString(tenantSlug)}"; }
+
+<div class="page-header page-header-actions"><div><span class="eyebrow">Guest experience</span><h1>Tables</h1><p class="muted">Manage authoritative table records before issuing table-specific QR codes.</p></div>@if (Model.SelectedBranch is not null) { <a class="btn btn-secondary" href="@(tenantPath)/QrCodes/Index?branchId=@Model.SelectedBranch.Id">QR codes</a> }</div>
+
+@if (Model.Branches.Count == 0)
+{
+    <div class="empty-state"><h2>Create a branch before adding tables.</h2><a class="btn btn-primary" href="@(tenantPath)/Branches/Create">Create branch</a></div>
+}
+else
+{
+    <section class="surface form-stack">
+        <form method="get" class="filter-bar" aria-label="@UiText.Get("Table filters")"><label class="filter-field" for="branchId"><span>@UiText.Get("Branch")</span><select id="branchId" name="branchId">@foreach (var branch in Model.Branches) { <option value="@branch.Id" selected="@(branch.Id == Model.BranchId)">@branch.Name</option> }</select></label><div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Load tables")</button></div></form>
+        @if (Model.SelectedBranch is not null)
+        {
+            <form asp-action="Create" method="post" class="form-section form-stack">
+                <h2>Add table</h2>
+                <div asp-validation-summary="All" class="validation"></div>
+                <input type="hidden" name="BranchId" value="@Model.CreateForm.BranchId" />
+                <label class="form-field"><span>Name</span><input name="Name" value="@Model.CreateForm.Name" placeholder="Table 1" required maxlength="120" />@if (ViewData.ModelState.TryGetValue("Name", out var createNameState)) { foreach (var error in createNameState.Errors) { <span class="field-validation field-validation-errors">@error.ErrorMessage</span> } }</label>
+                <label class="form-field"><span>Arabic name</span><input name="NameAr" value="@Model.CreateForm.NameAr" placeholder="طاولة 1" maxlength="120" />@if (ViewData.ModelState.TryGetValue("NameAr", out var createNameArState)) { foreach (var error in createNameArState.Errors) { <span class="field-validation field-validation-errors">@error.ErrorMessage</span> } }</label>
+                @Html.AntiForgeryToken()
+                <button class="btn btn-primary" type="submit">Create table</button>
+            </form>
+        }
+    </section>
+
+    @if (Model.Tables.Count == 0)
+    {
+        <div class="empty-state"><h2>No tables yet.</h2><p class="muted">Create the first table for this branch, then generate its QR code.</p></div>
+    }
+    else
+    {
+        <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Table</th><th>QR</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        @foreach (var table in Model.Tables)
+        {
+            var editForm = Model.EditErrorTableId == table.Id ? Model.EditForm : null;
+            <tr><td data-label="@UiText.Get("Table")"><strong>@table.Name</strong>@if (!string.IsNullOrWhiteSpace(table.NameAr)){<br /><small>@table.NameAr</small>}</td><td data-label="@UiText.Get("QR")">@(table.HasActiveQr ? UiText.Get("Active QR ready") : UiText.Get("No active QR"))</td><td data-label="@UiText.Get("Status")"><span class="status @(table.IsActive ? "status-live" : "status-muted")">@(table.IsActive ? UiText.Get("Active") : UiText.Get("Inactive"))</span></td><td data-label="@UiText.Get("Actions")" class="action-row"><a class="text-link" href="@(tenantPath)/QrCodes/Index?branchId=@table.BranchId&tableId=@table.Id">@(table.HasActiveQr ? UiText.Get("Open QR") : UiText.Get("Generate QR"))</a><form asp-action="SetActive" method="post" class="inline-form" data-confirm data-confirm-title="@(table.IsActive ? UiText.Get("Deactivate table") : UiText.Get("Activate table"))" data-confirm-message="@(table.IsActive ? UiText.Get("Deactivate this table? Its QR code will no longer accept new orders.") : UiText.Get("Activate this table for QR ordering?"))" data-confirm-label="@(table.IsActive ? UiText.Get("Deactivate") : UiText.Get("Activate"))" data-confirm-tone="@(table.IsActive ? "danger" : "warning")">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@table.Id" /><input type="hidden" name="branchId" value="@table.BranchId" /><input type="hidden" name="isActive" value="@(!table.IsActive)" /><button class="text-link @(table.IsActive ? "danger-link" : string.Empty)" type="submit">@(table.IsActive ? UiText.Get("Deactivate") : UiText.Get("Activate"))</button></form></td></tr>
+            <tr><td data-label="@UiText.Get("Edit table")" colspan="4"><form asp-action="Update" method="post" class="inline-editor"><input type="hidden" name="Id" value="@table.Id" /><input type="hidden" name="BranchId" value="@table.BranchId" /><label class="filter-field" for="table-name-@table.Id"><span>@UiText.Get("Table name")</span><input id="table-name-@table.Id" name="Name" value="@(editForm?.Name ?? table.Name)" maxlength="120" required />@if (Model.EditErrorTableId == table.Id && ViewData.ModelState.TryGetValue("Name", out var editNameState)) { foreach (var error in editNameState.Errors) { <span class="field-validation field-validation-errors">@error.ErrorMessage</span> } }</label><label class="filter-field" for="table-name-ar-@table.Id"><span>@UiText.Get("Arabic table name")</span><input id="table-name-ar-@table.Id" name="NameAr" value="@(editForm?.NameAr ?? table.NameAr)" maxlength="120" placeholder="@UiText.Get("Arabic name")" />@if (Model.EditErrorTableId == table.Id && ViewData.ModelState.TryGetValue("NameAr", out var editNameArState)) { foreach (var error in editNameArState.Errors) { <span class="field-validation field-validation-errors">@error.ErrorMessage</span> } }</label>@Html.AntiForgeryToken()<button class="btn btn-secondary" type="submit">@UiText.Get("Save changes")</button></form></td></tr>
+        }
+        </tbody></table></div>
+    }
+}

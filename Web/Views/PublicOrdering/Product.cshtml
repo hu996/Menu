@@ -1,0 +1,169 @@
+@model RestaurantMenuPlatform.Web.Models.PublicProductPageViewModel
+@using System.Globalization
+@{
+    Layout = null;
+    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var language = isArabic ? "ar" : "en";
+    var item = Model.Item;
+    var basket = Model.Basket;
+    var itemCount = basket.Lines.Sum(x => x.Quantity);
+    var title = isArabic ? "تفاصيل المنتج" : "Product details";
+    var add = isArabic ? "أضف إلى السلة" : "Add to basket";
+    var back = isArabic ? "العودة إلى القائمة" : "Back to menu";
+    var viewBasket = isArabic ? "عرض السلة" : "View basket";
+    var ingredients = isArabic ? "المكونات" : "Ingredients";
+    var allergens = isArabic ? "مسببات الحساسية" : "Allergens";
+    var customization = isArabic ? "خصّص طبقك" : "Customize your dish";
+    var quantityLabel = isArabic ? "الكمية" : "Quantity";
+    var itemTotalLabel = isArabic ? "إجمالي المنتج" : "Item total";
+    var basePriceLabel = isArabic ? "السعر الأساسي" : "Base price";
+    var unavailable = isArabic ? "غير متوفر حالياً" : "Currently unavailable";
+    var itemLabel = isArabic ? "صنف" : "items";
+    var contextSuffix = string.Empty;
+    var source = Context.Request.Query["source"].ToString();
+    var code = Context.Request.Query["code"].ToString();
+    if (string.IsNullOrWhiteSpace(code)) code = basket.QrCodeCode ?? string.Empty;
+    if (string.IsNullOrWhiteSpace(source) && !string.IsNullOrWhiteSpace(code)) source = "qr";
+    if (!string.IsNullOrWhiteSpace(source)) contextSuffix += $"&source={Uri.EscapeDataString(source)}";
+    if (!string.IsNullOrWhiteSpace(code)) contextSuffix += $"&code={Uri.EscapeDataString(code)}";
+    var menuContext = $"/menu/{Model.RestaurantSlug}/{Model.BranchSlug}?lang={language}{contextSuffix}";
+    var basketUrl = $"/menu/{Model.RestaurantSlug}/{Model.BranchSlug}/cart?lang={language}{contextSuffix}";
+    var selected = Model.SelectedModifierOptionIds ?? [];
+    var heroImage = item.Images?.FirstOrDefault()?.Url ?? item.ImageUrl;
+    var tableLabel = isArabic ? (basket.TableNameAr ?? basket.TableName) : basket.TableName;
+}
+<!doctype html>
+<html lang="@language" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@item.Name · @title</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="public-menu-body">
+    <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
+    <main class="public-menu public-product-page" id="main-content" tabindex="-1" data-public-product-page>
+        <header class="public-product-topbar">
+            <a class="text-link" href="@menuContext"><span aria-hidden="true">←</span> @back</a>
+            <a class="public-basket-mini" data-public-basket-link href="@basketUrl"><span aria-hidden="true">◎</span><strong>@viewBasket</strong><small><span data-basket-count>@itemCount</span> @itemLabel</small></a>
+        </header>
+        @if (!string.IsNullOrWhiteSpace(tableLabel))
+        {
+            <div class="public-order-context"><span aria-hidden="true">◎</span><strong>@(isArabic ? "الطلب من الطاولة" : "Ordering from")</strong><span>@tableLabel</span></div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="public-feedback feedback-error" role="alert">@error</div>
+        }
+        @if (TempData["Success"] is string success)
+        {
+            <div class="public-feedback feedback-success" role="status">@success</div>
+        }
+
+        <section class="public-product-layout">
+            <div class="public-product-gallery-wrap">
+                @if (item.Images is { Count: > 0 })
+                {
+                    <div class="public-product-gallery" data-public-gallery>
+                        <div class="public-product-gallery-primary" data-image-frame>
+                            <img data-gallery-primary data-public-image src="@heroImage" alt="@item.Name" data-fallback-label="@(isArabic ? "صورة المنتج" : "Product image")" />
+                        </div>
+                        @if (item.Images.Count > 1)
+                        {
+                            <div class="public-product-thumbnails" role="list" aria-label="@(isArabic ? "صور المنتج" : "Product images")">
+                                @foreach (var image in item.Images)
+                                {
+                                    <button type="button" data-gallery-thumb data-src="@image.Url" data-alt="@image.AltText" class="@(image.Url == heroImage ? "is-active" : string.Empty)" aria-label="@image.AltText">
+                                        <img data-public-image src="@image.Url" alt="" loading="lazy" data-fallback-label="@(isArabic ? "صورة المنتج" : "Product image")" />
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="public-product-fallback"><span aria-hidden="true">◎</span><small>@(isArabic ? "صورة المنتج" : "Product image")</small></div>
+                }
+            </div>
+
+            <div class="public-product-information">
+                <span class="eyebrow">@(isArabic ? "من قائمة المطعم" : "From the restaurant menu")</span>
+                <h1>@item.Name</h1>
+                <div class="public-product-price">@item.Price.ToString("0.00") <span>@item.Currency</span></div>
+                @if (!string.IsNullOrWhiteSpace(item.Description))
+                {
+                    <p class="public-product-description-large">@item.Description</p>
+                }
+                @if (item.Ingredients is { Count: > 0 })
+                {
+                    <div class="public-detail-note"><strong>@ingredients</strong><span>@string.Join(isArabic ? "، " : ", ", item.Ingredients)</span></div>
+                }
+                @if (item.Allergens is { Count: > 0 })
+                {
+                    <div class="public-detail-note public-detail-note-warning"><strong>@allergens</strong><span>@string.Join(isArabic ? "، " : ", ", item.Allergens)</span></div>
+                }
+                @if (!item.IsAvailable)
+                {
+                    <div class="public-availability-badge">@unavailable</div>
+                }
+
+                @if (item.IsAvailable)
+                {
+                    <form action="/menu/@Model.RestaurantSlug/@Model.BranchSlug/cart/add" method="post" class="public-product-form" data-public-add-form data-public-ajax-form data-public-product-form data-base-price="@item.Price.ToString("0.00", CultureInfo.InvariantCulture)" data-currency="@item.Currency">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="itemId" value="@item.Id" />
+                        <input type="hidden" name="quantity" value="@Model.InitialQuantity" data-quantity-input />
+                        @if (!string.IsNullOrWhiteSpace(Model.EditKey))
+                        {
+                            <input type="hidden" name="replaceKey" value="@Model.EditKey" />
+                        }
+                        @if (item.Modifiers.Count > 0)
+                        {
+                            <section class="public-customization-section">
+                                <div class="public-section-title"><span class="eyebrow">@(isArabic ? "اختياراتك" : "Your choices")</span><h2>@customization</h2></div>
+                                <div class="public-modifier-groups">
+                                    @for (var modifierIndex = 0; modifierIndex < item.Modifiers.Count; modifierIndex++)
+                                    {
+                                        var modifier = item.Modifiers[modifierIndex];
+                                        var min = Math.Max(modifier.MinSelections, modifier.IsRequired ? 1 : 0);
+                                        var max = Math.Max(min, modifier.MaxSelections);
+                                        var groupId = $"modifier-group-{modifierIndex}";
+                                        <fieldset class="public-modifier-group" id="@groupId" data-modifier-group data-group-min="@min" data-group-max="@max" data-group-label="@modifier.Name">
+                                            <legend><span>@modifier.Name</span><small>@(modifier.IsRequired || min > 0 ? (isArabic ? "مطلوب" : "Required") : (isArabic ? "اختياري" : "Optional")) · @(isArabic ? $"اختر حتى {max}" : $"Choose up to {max}")</small></legend>
+                                            <div class="public-option-list">
+                                                @foreach (var option in modifier.Options)
+                                                {
+                                                    <label class="public-option" data-option-label>
+                                                        <input type="checkbox" name="modifierOptionIds" value="@option.Id" data-modifier-option data-group-id="@groupId" data-price-adjustment="@option.PriceAdjustment.ToString(CultureInfo.InvariantCulture)" @(selected.Contains(option.Id) ? "checked" : null) />
+                                                        <span><strong>@option.Name</strong>@if (option.PriceAdjustment != 0) { <small>@(option.PriceAdjustment > 0 ? "+" : string.Empty)@option.PriceAdjustment.ToString("0.00") @item.Currency</small> }</span>
+                                                        <i aria-hidden="true">+</i>
+                                                    </label>
+                                                }
+                                            </div>
+                                            <p class="public-group-error" data-group-error role="alert" hidden></p>
+                                        </fieldset>
+                                    }
+                                </div>
+                            </section>
+                        }
+                        <section class="public-purchase-panel">
+                            <div class="public-purchase-row">
+                                <div><span class="eyebrow">@quantityLabel</span><div class="public-stepper"><button type="button" data-quantity-action="decrease" aria-label="@(isArabic ? "تقليل الكمية" : "Decrease quantity")">−</button><output data-quantity-value>@Model.InitialQuantity</output><button type="button" data-quantity-action="increase" aria-label="@(isArabic ? "زيادة الكمية" : "Increase quantity")">+</button></div><p class="public-input-error" data-quantity-error role="alert" hidden></p></div>
+                                <div class="public-item-total"><span>@itemTotalLabel</span><strong><span data-item-total>@((item.Price * Model.InitialQuantity).ToString("0.00"))</span> @item.Currency</strong><small>@basePriceLabel @item.Price.ToString("0.00") @item.Currency</small></div>
+                            </div>
+                            <button class="public-action public-action-primary public-add-cta" type="submit" data-loading-label="@(isArabic ? "جارٍ الإضافة…" : "Adding…")"><span>@add</span><strong>— <span data-item-total>@((item.Price * Model.InitialQuantity).ToString("0.00"))</span> @item.Currency</strong></button>
+                            <div class="public-inline-feedback" data-form-feedback role="status" aria-live="polite"></div>
+                        </section>
+                    </form>
+                }
+            </div>
+        </section>
+    </main>
+    <div class="public-basket-bar" data-public-basket-bar data-has-items="@(itemCount > 0 ? "true" : "false")">
+        <div><strong><span data-basket-count>@itemCount</span> @itemLabel</strong><small data-basket-total>@basket.Total.ToString("0.00") @basket.Currency</small></div>
+        <a class="public-action" href="@basketUrl">@viewBasket <span aria-hidden="true">→</span></a>
+    </div>
+    <script src="~/js/site.js"></script>
+</body>
+</html>

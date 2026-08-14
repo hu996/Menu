@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+Web/Storage/
+*.log
+*.zip
+*.md
+!README.md
+!ARCHITECTURE.md
+!ProductionInfrastructureAuditReport.md

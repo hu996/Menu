@@ -1,0 +1,29 @@
+@model IReadOnlyList<RestaurantMenuPlatform.Application.DTOs.MenuListDto>
+@{
+    ViewData["Title"] = "Menus";
+}
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">Menu studio</span><h1>Menus</h1><p class="muted">Shape the menu your guests see, one detail at a time.</p></div>
+    @if (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("MenuEditor") || User.IsInRole("PlatformAdmin"))
+    { <a class="btn btn-primary" asp-action="Create">Create menu</a> }
+</div>
+@if (Model.Count == 0)
+{
+    <div class="empty-state"><span class="eyebrow">@UiText.Get("No menus yet")</span><h2>@UiText.Get("Create your first menu")</h2><p class="muted">@UiText.Get("Create your first menu and start building your restaurant catalog.")</p><a class="btn btn-primary" asp-action="Create">@UiText.Get("Create menu")</a></div>
+}
+else
+{
+    <div class="data-table" data-columns="5">
+        <div class="table-row table-heading"><span>Name</span><span>Type / scope</span><span>Branches</span><span>Status</span><span></span></div>
+        @foreach (var menu in Model)
+        {
+            <div class="table-row">
+                <span><a asp-action="Details" asp-route-id="@menu.Id">@UiText.Business(menu.Name, menu.Name, menu.NameAr)</a><small>/@menu.Slug</small></span>
+                <span>@(menu.MenuTypeCode ?? "—")<small>@(menu.ScopeCode ?? "—") · @menu.Categories @UiText.Get("categories") · @menu.Items @UiText.Get("items")</small></span><span>@menu.AssignedBranches @UiText.Get("branch(es)")</span>
+                <span><span class="status" data-status="@menu.Status">@UiText.Get(menu.Status.ToString())</span></span>
+                <span><a class="text-link" asp-action="Details" asp-route-id="@menu.Id">@UiText.Get("Open")</a></span>
+            </div>
+        }
+    </div>
+}

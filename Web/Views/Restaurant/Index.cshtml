@@ -1,0 +1,57 @@
+@model RestaurantMenuPlatform.Web.Models.RestaurantViewModel
+@{ ViewData["Title"] = "Restaurant settings"; }
+
+<div class="page-header"><span class="eyebrow">Restaurant identity</span><h1>Restaurant settings</h1><p class="muted">Manage the bilingual identity and public-facing defaults for this tenant.</p><span class="status @(Model.IsActive ? "status-live" : "status-muted")">Status: @(Model.IsActive ? "Active" : "Inactive")</span></div>
+
+<form id="restaurant-settings-form" asp-action="Index" method="post" enctype="multipart/form-data" class="form-stack premium-form" data-upload-form>
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">Identity</span><h2>Restaurant information</h2><p>Keep the name and contact details consistent across the public menu.</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="NameEn"></label><input asp-for="NameEn" /><span asp-validation-for="NameEn" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="NameAr"></label><input asp-for="NameAr" dir="rtl" /><span class="field-hint">Arabic display name.</span></div>
+            <div class="form-field"><label asp-for="Phone"></label><input asp-for="Phone" autocomplete="tel" /></div>
+            <div class="form-field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /></div>
+            <div class="form-field form-field-full"><label asp-for="Address"></label><textarea asp-for="Address" rows="3"></textarea></div>
+        </div>
+    </section>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">Branding</span><h2>Visual presence</h2><p>Upload a real image file for the logo or cover. Files are stored in managed tenant media.</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="LogoFile"></label><input asp-for="LogoFile" type="file" accept="image/jpeg,image/png,image/webp" data-image-input /><span class="field-hint">JPEG, PNG, or WebP · max 5 MB.</span><span asp-validation-for="LogoFile" class="field-validation"></span><div class="upload-preview-grid" data-preview-logo></div>@if (!string.IsNullOrWhiteSpace(Model.LogoUrl)) { <img class="branding-preview" src="@Model.LogoUrl" alt="@Model.NameEn logo" /><span class="field-hint">Delete the current logo from the branding actions below.</span> }</div>
+            <div class="form-field"><label asp-for="CoverFile"></label><input asp-for="CoverFile" type="file" accept="image/jpeg,image/png,image/webp" data-cover-input /><span class="field-hint">JPEG, PNG, or WebP · max 5 MB.</span><span asp-validation-for="CoverFile" class="field-validation"></span><div class="upload-preview-grid" data-preview-cover></div>@if (!string.IsNullOrWhiteSpace(Model.CoverImageUrl)) { <img class="branding-preview" src="@Model.CoverImageUrl" alt="@Model.NameEn cover" /><span class="field-hint">Delete the current cover from the branding actions below.</span> }</div>
+            <div class="form-field"><label asp-for="BrandPrimaryColor"></label><input asp-for="BrandPrimaryColor" type="color" /></div>
+            <div class="form-field"><label asp-for="BrandAccentColor"></label><input asp-for="BrandAccentColor" type="color" /></div>
+        </div>
+    </section>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">Defaults</span><h2>Language and currency</h2><p>These values come from the database-backed lookup collections.</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="Currency"></label><select asp-for="Currency">@foreach (var currency in Model.Currencies) { <option value="@currency.Code">@currency.NameEn (@currency.Code)</option> }</select><span asp-validation-for="Currency" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="DefaultLanguage"></label><select asp-for="DefaultLanguage">@foreach (var language in Model.Languages) { <option value="@language.Code">@language.NameEn</option> }</select><span asp-validation-for="DefaultLanguage" class="field-validation"></span></div>
+        </div>
+    </section>
+    @Html.AntiForgeryToken()
+    <div class="form-actions-sticky"><span class="muted">Changes apply to this tenant only.</span><button class="btn btn-primary" type="submit">Save restaurant settings</button></div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.LogoUrl) || !string.IsNullOrWhiteSpace(Model.CoverImageUrl))
+{
+    <section class="surface branding-actions" aria-label="Branding actions">
+        <div class="section-heading"><div><span class="eyebrow">Branding actions</span><h2>Manage existing media</h2></div></div>
+        <div class="action-row">
+            @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+            {
+                <form asp-action="DeleteBranding" method="post" class="inline-form" data-confirm data-confirm-title="Delete restaurant logo" data-confirm-message="Delete the restaurant logo from managed storage?" data-confirm-label="Delete logo" data-confirm-tone="danger">
+                    @Html.AntiForgeryToken()<input type="hidden" name="kind" value="Logo" /><button type="submit" class="text-link danger-link">Delete logo</button>
+                </form>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.CoverImageUrl))
+            {
+                <form asp-action="DeleteBranding" method="post" class="inline-form" data-confirm data-confirm-title="Delete restaurant cover" data-confirm-message="Delete the restaurant cover from managed storage?" data-confirm-label="Delete cover" data-confirm-tone="danger">
+                    @Html.AntiForgeryToken()<input type="hidden" name="kind" value="Cover" /><button type="submit" class="text-link danger-link">Delete cover</button>
+                </form>
+            }
+        </div>
+    </section>
+}

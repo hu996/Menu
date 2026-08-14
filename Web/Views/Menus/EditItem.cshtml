@@ -1,0 +1,162 @@
+@model RestaurantMenuPlatform.Web.Models.MenuItemViewModel
+@{
+    ViewData["Title"] = "Edit item";
+    var tenantSlug = User.FindFirst("tenant_slug")?.Value ?? "restaurant";
+}
+
+<nav class="breadcrumbs" aria-label="@UiText.Get("Breadcrumbs")">
+    <a href="/r/@tenantSlug/Dashboard/Index">@UiText.Get("Restaurant")</a><span aria-hidden="true">/</span>
+    <a asp-controller="Menus" asp-action="Index">@UiText.Get("Menus")</a><span aria-hidden="true">/</span>
+    <span>@Model.MenuName</span><span aria-hidden="true">/</span><span>@Model.CategoryName</span><span aria-hidden="true">/</span><strong>@Model.Name</strong>
+</nav>
+
+<div class="page-header product-header">
+    <div>
+        <span class="eyebrow">@UiText.Get("Product workspace")</span>
+        <h1>@UiText.Business(Model.Name, Model.Name, Model.NameAr)</h1>
+        <p class="muted">@Model.MenuName &middot; @Model.CategoryName</p>
+    </div>
+    <div class="product-header-meta"><strong>@Model.Price.ToString("0.00") @Model.Currency</strong><span class="status @(Model.IsAvailable ? "status-live" : "status-muted")">@(Model.IsAvailable ? UiText.Get("Available") : UiText.Get("Unavailable"))</span></div>
+</div>
+
+
+<div class="product-editor">
+    <nav class="workspace-subnav" aria-label="@UiText.Get("Product workspace sections")">
+        <a href="#product-overview">@UiText.Get("Overview")</a>
+        <a href="#product-content">@UiText.Get("Content")</a>
+        <a href="#product-pricing">@UiText.Get("Pricing")</a>
+        <a href="#product-availability">@UiText.Get("Availability")</a>
+        <a href="#product-history">@UiText.Get("History")</a>
+    </nav>
+
+    <form asp-action="EditItem" asp-route-id="@Model.Id" method="post" class="product-details-form premium-form">
+        <input asp-for="CategoryId" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+        <section id="product-overview" class="editor-tab-panel form-section product-primary-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Overview")</span><h2>@UiText.Get("Basic information")</h2><p>@UiText.Get("Keep the product identity and classification together.")</p></div>
+            <div class="form-grid">
+                <div><label asp-for="Name">@UiText.Get("English name")</label><input asp-for="Name" /></div>
+                <div><label asp-for="NameAr">@UiText.Get("Arabic name")</label><input asp-for="NameAr" dir="rtl" /></div>
+            </div>
+            <label asp-for="Description">@UiText.Get("English description")</label>
+            <textarea asp-for="Description" rows="4"></textarea>
+            <label asp-for="DescriptionAr">@UiText.Get("Arabic description")</label>
+            <textarea asp-for="DescriptionAr" rows="4" dir="rtl"></textarea>
+        </section>
+
+        <section id="product-classification" class="editor-tab-panel form-section product-primary-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Classification")</span><h2>@UiText.Get("Category & classification")</h2><p>@UiText.Get("Keep the product in the correct menu context.")</p></div>
+            <div class="detail-grid">
+                <div class="detail-card"><span class="eyebrow">@UiText.Get("Menu")</span><strong>@Model.MenuName</strong></div>
+                <div class="detail-card"><span class="eyebrow">@UiText.Get("Current category")</span><strong>@Model.CategoryName</strong></div>
+            </div>
+            <label asp-for="CategoryId">@UiText.Get("Category")</label>
+            <select asp-for="CategoryId">@foreach (var category in Model.CategoryOptions) { <option value="@category.Id">@category.Name</option> }</select>
+            <label asp-for="ProductTypeCode"></label>
+            <select asp-for="ProductTypeCode"><option value="">@UiText.Get("Select product type from database")</option>@foreach (var type in Model.ProductTypes) { <option value="@type.Code">@type.NameEn</option> }</select>
+            <p class="muted">@UiText.Get("Product types are tenant lookup values and are not hard-coded in this editor.")</p>
+        </section>
+
+        <section id="product-pricing" class="editor-tab-panel form-section product-primary-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Pricing")</span><h2>@UiText.Get("Product pricing")</h2><p>@UiText.Get("Base price and currency are saved with this product; advanced adjustments remain in Pricing.")</p></div>
+            <div class="form-grid">
+                <div><label asp-for="Price">@UiText.Get("Base price")</label><input asp-for="Price" type="number" step="0.01" inputmode="decimal" /></div>
+                <div><label asp-for="Currency"></label><select asp-for="Currency"><option value="">@UiText.Get("Select currency")</option>@foreach (var currency in Model.CurrencyOptions) { <option value="@currency.Code">@currency.NameEn (@currency.Code)</option> }</select></div>
+            </div>
+            <label asp-for="SortOrder">@UiText.Get("Display order")</label><input asp-for="SortOrder" type="number" inputmode="numeric" />
+        </section>
+
+        <section id="product-content" class="editor-tab-panel form-section product-content-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Content")</span><h2>@UiText.Get("Ingredients")</h2><p>@UiText.Get("Content belongs to this product and can be refined independently.")</p></div>
+            <fieldset class="choice-list">
+                <legend>@UiText.Get("Ingredients")</legend>
+                <p class="muted">@UiText.Get("Select managed ingredient records. New ingredients are created in Catalog → Ingredients.")</p>
+                @foreach (var ingredient in Model.IngredientOptions) { <label class="choice-list-item"><input type="checkbox" name="IngredientIds" value="@ingredient.Id" checked="@(Model.IngredientIds.Contains(ingredient.Id) ? "checked" : null)" /> <span>@UiText.Business(ingredient.Name, ingredient.Name, ingredient.NameAr)</span></label> }
+            </fieldset>
+        </section>
+
+        <section id="product-allergens" class="editor-tab-panel form-section product-content-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Content")</span><h2>@UiText.Get("Allergens")</h2><p>@UiText.Get("Select managed allergen records for public disclosure.")</p></div>
+            <fieldset class="choice-list">
+                <legend>@UiText.Get("Allergens")</legend>
+                @foreach (var allergen in Model.AllergenOptions) { <label class="choice-list-item"><input type="checkbox" name="AllergenIds" value="@allergen.Id" checked="@(Model.AllergenIds.Contains(allergen.Id) ? "checked" : null)" /> <span>@UiText.Business(allergen.Name, allergen.Name, allergen.NameAr)</span></label> }
+            </fieldset>
+        </section>
+
+        <section id="product-modifiers" class="editor-tab-panel form-section product-content-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Content")</span><h2>@UiText.Get("Modifiers")</h2><p>@UiText.Get("Configure the modifier groups available for this product.")</p></div>
+            <fieldset class="choice-list">
+                <legend>@UiText.Get("Modifiers")</legend>
+                @foreach (var modifier in Model.Modifiers) { <label class="choice-list-item"><input type="checkbox" name="ModifierIds" value="@modifier.Id" checked="@(Model.ModifierIds.Contains(modifier.Id) ? "checked" : null)" /> <span>@UiText.Business(modifier.Name, modifier.Name, modifier.NameAr)<small>@(modifier.IsRequired ? UiText.Get("Required") : UiText.Get("Optional")) &middot; @modifier.MinSelections–@modifier.MaxSelections</small></span></label> }
+            </fieldset>
+        </section>
+
+        <section id="product-availability" class="editor-tab-panel form-section product-primary-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Availability")</span><h2>@UiText.Get("Global availability")</h2><p>@UiText.Get("Global availability is separate from branch overrides.")</p></div>
+            <span class="status @(Model.IsAvailable ? "status-live" : "status-muted")">@(Model.IsAvailable ? UiText.Get("Available") : UiText.Get("Unavailable"))</span>
+            <p class="field-hint">@UiText.Get("Managed product images are maintained in the gallery below. External image URLs are not accepted.")</p>
+        </section>
+
+        <section id="product-branch-availability" class="editor-tab-panel form-section product-content-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Availability")</span><h2>@UiText.Get("Branch availability")</h2><p>@UiText.Get("Branch overrides inherit the global product state unless explicitly changed.")</p></div>
+            @if (Model.BranchAvailability.Count == 0)
+            {
+                <p class="muted">@UiText.Get("This product is not assigned to an active branch through its menu.")</p>
+            }
+            else
+            {
+                <div class="availability-list">@foreach (var branch in Model.BranchAvailability) { <div class="availability-row"><strong>@UiText.Business(branch.BranchName, branch.BranchName, null)</strong><span class="status @(branch.IsAvailable && branch.IsVisible ? "status-live" : "status-muted")">@(branch.IsVisible ? (branch.IsAvailable ? UiText.Get("Available") : UiText.Get("Unavailable")) : UiText.Get("Hidden"))</span>@if (branch.PriceOverride.HasValue) { <small>@UiText.Get("Price override"): @branch.PriceOverride.Value.ToString("0.00")</small> }</div> }</div>
+            }
+        </section>
+
+        <section id="product-history" class="editor-tab-panel form-section product-primary-section" role="region">
+            <div class="form-section-heading"><span class="eyebrow">@UiText.Get("History")</span><h2>@UiText.Get("Audit history")</h2><p>@UiText.Get("Changes to this product and its images are recorded in the tenant audit trail.")</p></div>
+            <a class="text-link" asp-controller="Audit" asp-action="Index">@UiText.Get("Open audit history")</a>
+        </section>
+
+        <div class="form-actions-sticky"><span class="muted">@UiText.Get("Product changes are recorded in the tenant audit trail.")</span><button class="btn btn-primary" type="submit">@UiText.Get("Save product")</button></div>
+    </form>
+
+    <section id="product-content-images" class="editor-tab-panel form-section image-tab-panel" role="region">
+        <div class="image-manager" data-lightbox-root>
+            <div class="section-heading"><div><span class="eyebrow">@UiText.Get("Content")</span><h2>@UiText.Get("Images gallery")</h2><p>@UiText.Get("Upload multiple images, choose a primary image, reorder the gallery, or replace an existing image.")</p></div></div>
+            <form asp-controller="Images" asp-action="Upload" method="post" enctype="multipart/form-data" class="upload-form premium-form" data-upload-form>
+                <input type="hidden" name="menuItemId" value="@Model.Id" />@Html.AntiForgeryToken()
+                <div class="upload-dropzone"><label for="imageFiles"><strong>@UiText.Get("Choose product images")</strong><span class="field-hint">JPEG, PNG, or WebP &middot; max 5 MB each</span></label><input id="imageFiles" name="files" type="file" accept="image/jpeg,image/png,image/webp" multiple data-image-input /><span class="field-validation @(TempData.Peek("ImageFieldError") is string ? "is-visible" : string.Empty)" data-upload-field-error>@(TempData.Peek("ImageFieldError")?.ToString())</span></div>
+                <label for="altText">@UiText.Get("Alt text for uploaded images")</label><input id="altText" name="altText" maxlength="300" placeholder="@UiText.Get("Describe the dish for accessibility")" />
+                <div class="upload-preview-grid" data-preview-grid></div><div class="upload-progress" data-upload-progress hidden><span></span></div>
+                <button class="btn btn-secondary" type="submit">@UiText.Get("Upload selected images")</button>
+            </form>
+            @if (Model.Images.Count > 0)
+            {
+                <div class="image-gallery" aria-label="@UiText.Get("Product image gallery")">@foreach (var image in Model.Images.OrderBy(x => x.SortOrder)) { <figure class="image-tile"><button type="button" class="image-lightbox-trigger" data-lightbox-src="@image.Url" data-lightbox-alt="@(image.AltText ?? image.OriginalFileName ?? Model.Name)"><img src="@image.Url" alt="@(image.AltText ?? image.OriginalFileName ?? Model.Name)" /></button><figcaption><strong>@(image.IsPrimary ? UiText.Get("Primary") : UiText.Get("Gallery image"))</strong><small>@(image.AltText ?? UiText.Get("No alt text"))</small></figcaption><div class="action-row compact-actions">@if (!image.IsPrimary) { <form asp-controller="Images" asp-action="SetPrimary" method="post" data-confirm data-confirm-title="Make image primary" data-confirm-message="Make this image the primary product image? It will become the default image shown in guest menus." data-confirm-label="Make primary" data-confirm-tone="warning"><input type="hidden" name="imageId" value="@image.Id" /><input type="hidden" name="menuItemId" value="@Model.Id" />@Html.AntiForgeryToken()<button class="text-link" type="submit">@UiText.Get("Make primary")</button></form> }<form asp-controller="Images" asp-action="Move" method="post" data-confirm data-confirm-title="Reorder gallery image" data-confirm-message="Move this image one position in the product gallery? The gallery order is visible to guests." data-confirm-label="Reorder image" data-confirm-tone="warning"><input type="hidden" name="imageId" value="@image.Id" /><input type="hidden" name="menuItemId" value="@Model.Id" /><input type="hidden" name="moveUp" value="false" />@Html.AntiForgeryToken()<button class="text-link" type="submit">@UiText.Get("Move down")</button></form><form asp-controller="Images" asp-action="Replace" method="post" enctype="multipart/form-data" class="replace-form" data-upload-form><input type="hidden" name="imageId" value="@image.Id" /><input type="hidden" name="menuItemId" value="@Model.Id" />@Html.AntiForgeryToken()<label>@UiText.Get("Replace")<input type="file" name="file" accept="image/jpeg,image/png,image/webp" required data-image-input /></label><span class="field-validation @(TempData.Peek("ImageErrorImageId")?.ToString() == image.Id.ToString() ? "is-visible" : string.Empty)">@(TempData.Peek("ImageErrorImageId")?.ToString() == image.Id.ToString() ? TempData.Peek("ImageFieldError")?.ToString() : string.Empty)</span><button class="text-link" type="submit">@UiText.Get("Replace")</button></form><form asp-controller="Images" asp-action="Delete" method="post" data-confirm data-confirm-title="Delete image" data-confirm-message="Delete this image from the product gallery? This cannot be undone from the editor." data-confirm-label="Delete image" data-confirm-tone="danger"><input type="hidden" name="imageId" value="@image.Id" /><input type="hidden" name="menuItemId" value="@Model.Id" />@Html.AntiForgeryToken()<button class="text-link danger-link" type="submit">@UiText.Get("Delete")</button></form></div></figure> }</div>
+            }
+            else
+            {
+                <div class="empty-state compact-empty-state"><h2>@UiText.Get("No images yet")</h2><p class="muted">@UiText.Get("Add a clear dish photo to make the public menu easier to scan.")</p></div>
+            }
+        </div>
+    </section>
+</div>
+
+<form asp-controller="Menus" asp-action="SetItemAvailability" method="post" class="surface availability-action" data-confirm data-confirm-title="@(Model.IsAvailable ? "Mark item unavailable" : "Mark item available")" data-confirm-message="@(Model.IsAvailable ? "Mark this item unavailable? It will stop appearing as available on guest menus." : "Mark this item available? It can be ordered wherever its menu is published.")" data-confirm-label="@(Model.IsAvailable ? "Mark unavailable" : "Mark available")" data-confirm-tone="warning"><input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="isAvailable" value="@(!Model.IsAvailable)" />@Html.AntiForgeryToken()<strong>@UiText.Get("Availability")</strong><span class="muted">@UiText.Get("Change the shared availability without leaving the editor.")</span><button class="btn btn-secondary" type="submit">@(Model.IsAvailable ? UiText.Get("Mark unavailable") : UiText.Get("Mark available"))</button></form>
+
+<div class="lightbox" data-lightbox hidden><button type="button" data-lightbox-close aria-label="@UiText.Get("Close image")">&times;</button><img data-lightbox-image alt="" /></div>
+@section Scripts {
+    <script>
+        (() => {
+            const input = document.querySelector('[data-image-input]');
+            const previews = document.querySelector('[data-preview-grid]');
+            const form = document.querySelector('[data-upload-form]');
+            const progress = document.querySelector('[data-upload-progress]');
+            if (input && previews) input.addEventListener('change', () => { previews.innerHTML = ''; [...input.files].forEach(file => { const image = document.createElement('img'); image.alt = file.name; image.src = URL.createObjectURL(file); previews.appendChild(image); }); });
+            if (form && progress) form.addEventListener('submit', () => progress.hidden = false);
+            const lightbox = document.querySelector('[data-lightbox]');
+            const lightboxImage = document.querySelector('[data-lightbox-image]');
+            document.querySelectorAll('[data-lightbox-src]').forEach(button => button.addEventListener('click', () => { lightboxImage.src = button.dataset.lightboxSrc; lightboxImage.alt = button.dataset.lightboxAlt || ''; lightbox.hidden = false; }));
+            document.querySelector('[data-lightbox-close]')?.addEventListener('click', () => lightbox.hidden = true);
+            lightbox?.addEventListener('click', event => { if (event.target === lightbox) lightbox.hidden = true; });
+        })();
+    </script>
+}

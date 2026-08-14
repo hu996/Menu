@@ -1,0 +1,47 @@
+@model RestaurantMenuPlatform.Application.DTOs.OrderReceiptDto
+@{
+    Layout = null;
+    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var language = isArabic ? "ar" : "en";
+    var received = isArabic ? "تم استلام الطلب" : "Order received";
+    var total = isArabic ? "الإجمالي" : "Total";
+    var tableLabel = isArabic ? (Model.TableNameAr ?? Model.TableName ?? "غير مسجل") : (Model.TableName ?? "Not recorded");
+    var statusKey = Model.Status.ToLowerInvariant();
+    var statusLabel = isArabic ? statusKey switch
+    {
+        "pending" => "قيد الانتظار",
+        "confirmed" => "تم التأكيد",
+        "preparing" => "قيد التحضير",
+        "ready" => "جاهز",
+        "completed" => "مكتمل",
+        "cancelled" => "ملغى",
+        _ => Model.Status
+    } : Model.Status;
+}
+<!doctype html>
+<html lang="@language" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@received</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="public-menu-body">
+    <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
+    <main class="public-menu public-order-page public-receipt-page" id="main-content" tabindex="-1">
+        <header class="public-hero public-hero-compact">
+            <div class="public-hero-copy"><span class="eyebrow">@received</span><h1>@Model.OrderNumber</h1><p>@statusLabel</p></div>
+        </header>
+        <section class="public-order-card">
+            <div class="public-receipt-intro"><span class="public-receipt-mark" aria-hidden="true">✓</span><div><h2>@Model.RestaurantName</h2><p class="muted">@Model.BranchName · @(isArabic ? "الطاولة" : "Table"): @tableLabel</p></div></div>
+            <div class="public-cart-lines">
+                @foreach (var line in Model.Items)
+                {
+                    <div class="public-cart-line public-receipt-line"><div class="public-cart-line-copy"><div class="public-cart-line-heading"><div><h2>@line.Quantity × @line.ProductName</h2>@if (line.ModifierNames.Count > 0) { <span class="public-cart-unit">@string.Join(isArabic ? "، " : ", ", line.ModifierNames)</span> }</div><strong>@line.LineTotal.ToString("0.00") @line.Currency</strong></div></div></div>
+                }
+            </div>
+            <div class="public-cart-total"><span>@total</span><strong>@Model.Total.ToString("0.00") @Model.Currency</strong></div>
+        </section>
+    </main>
+</body>
+</html>

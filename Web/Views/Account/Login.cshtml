@@ -1,0 +1,23 @@
+@model RestaurantMenuPlatform.Web.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+    var tenantSlug = Context.Request.RouteValues["tenantSlug"]?.ToString();
+    var loginAction = string.IsNullOrWhiteSpace(tenantSlug)
+        ? "/Account/Login"
+        : $"/r/{tenantSlug}/Account/Login";
+}
+
+<section class="auth-shell">
+    <div class="auth-panel">
+        <span class="eyebrow">Private workspace</span>
+        <h1>Welcome back.</h1>
+        <p class="muted">Sign in to manage your restaurant menus and branches.</p>
+        <form action="@loginAction" method="post" class="form-stack premium-form">
+            @Html.AntiForgeryToken()
+            <input asp-for="ReturnUrl" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+            <section class="form-section"><div class="form-section-heading"><span class="eyebrow">Secure access</span><h2>Sign in</h2><p>Use the account assigned to this restaurant workspace.</p></div><div class="form-field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="field-validation"></span></div><div class="form-field"><label asp-for="Password"></label><input id="Password" name="Password" type="password" value="@Model.Password" autocomplete="current-password" /><span asp-validation-for="Password" class="field-validation"></span></div></section>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Sign in</button><a class="text-link" asp-action="ForgotPassword">Forgot password?</a></div>
+</form>
+    </div>
+</section>

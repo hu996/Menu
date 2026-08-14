@@ -1,0 +1,53 @@
+@model RestaurantMenuPlatform.Web.Models.LookupTypeIndexViewModel
+@{
+    ViewData["Title"] = "Lookup types";
+}
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">Configuration center</span><h1>Lookup types</h1><p class="muted">Controlled type definitions keep value forms consistent across the workspace.</p></div>
+    <div class="table-actions"><a class="btn btn-secondary" asp-controller="Lookups" asp-action="Index">Lookup values</a></div>
+</div>
+<form method="get" class="filter-bar" aria-label="@UiText.Get("Lookup type filters")">
+    <label class="filter-field"><span>@UiText.Get("Search")</span><input type="search" name="search" value="@Model.Page.Search" placeholder="@UiText.Get("Search code, name, or description")" /></label>
+    <label class="filter-field"><span>@UiText.Get("Status")</span><select name="isActive"><option value="">@UiText.Get("All statuses")</option><option value="true" selected="@(Context.Request.Query["isActive"] == "true" ? "selected" : null)">@UiText.Get("Active")</option><option value="false" selected="@(Context.Request.Query["isActive"] == "false" ? "selected" : null)">@UiText.Get("Inactive")</option></select></label>
+    <label class="filter-field"><span>@UiText.Get("Sort by")</span><select name="sortBy"><option value="code" selected="@(Context.Request.Query["sortBy"] == "code")">@UiText.Get("Code")</option><option value="english" selected="@(Context.Request.Query["sortBy"] == "english")">@UiText.Get("English")</option><option value="arabic" selected="@(Context.Request.Query["sortBy"] == "arabic")">@UiText.Get("Arabic")</option><option value="order" selected="@(Context.Request.Query["sortBy"] == "order")">@UiText.Get("Order")</option><option value="status" selected="@(Context.Request.Query["sortBy"] == "status")">@UiText.Get("Status")</option></select></label>
+    <label class="checkbox-label"><input type="checkbox" name="descending" value="true" @(Context.Request.Query["descending"] == "true" ? "checked" : null) /> <span>Descending</span></label>
+    <div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Apply filters")</button><a class="btn btn-ghost" asp-action="Index">@UiText.Get("Reset")</a></div>
+</form>
+<div class="table-shell">
+    <table class="data-table"><thead><tr><th>Code</th><th>English</th><th>Arabic</th><th>Description</th><th>Values</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    @foreach (var type in Model.Page.Items)
+    {
+        <tr>
+            <td data-label="@UiText.Get("Code")"><code>@type.Code</code> @if (type.IsGlobal) { <span class="status status-muted">Global</span> }</td>
+            <td data-label="@UiText.Get("English")">@type.NameEn</td>
+            <td data-label="@UiText.Get("Arabic")" dir="rtl">@type.NameAr</td>
+            <td data-label="@UiText.Get("Description")">@type.Description</td>
+            <td data-label="@UiText.Get("Values")">@type.ValueCount</td>
+            <td data-label="@UiText.Get("Order")">@type.SortOrder</td>
+            <td data-label="@UiText.Get("Status")"><span class="status @(type.IsActive ? "status-live" : "status-muted")">@(type.IsActive ? "Active" : "Inactive")</span></td>
+            <td data-label="@UiText.Get("Actions")" class="table-actions">
+                @if (type.IsGlobal && !User.IsInRole("PlatformAdmin"))
+                {
+                    <span class="muted">Platform-managed</span>
+                }
+                else
+                {
+                    <details class="action-menu">
+                        <summary aria-label="Actions"><span data-icon="more-horizontal" aria-hidden="true">···</span></summary>
+                        <div class="action-menu-panel">
+                            <a asp-action="Edit" asp-route-id="@type.Id">Edit</a>
+                            <form asp-action="Move" method="post" data-confirm data-confirm-title="Reorder lookup type" data-confirm-message="Move this lookup type one position? Its order affects how configuration choices are presented." data-confirm-label="Reorder type" data-confirm-tone="warning"><input type="hidden" name="id" value="@type.Id" /><input type="hidden" name="moveUp" value="true" />@Html.AntiForgeryToken()<button type="submit">Move up</button></form>
+                            <form asp-action="Move" method="post" data-confirm data-confirm-title="Reorder lookup type" data-confirm-message="Move this lookup type one position? Its order affects how configuration choices are presented." data-confirm-label="Reorder type" data-confirm-tone="warning"><input type="hidden" name="id" value="@type.Id" /><input type="hidden" name="moveUp" value="false" />@Html.AntiForgeryToken()<button type="submit">Move down</button></form>
+                            <form asp-action="SetActive" method="post" data-confirm data-confirm-title="@(type.IsActive ? "Deactivate lookup type" : "Activate lookup type")" data-confirm-message="@(type.IsActive ? "Deactivate this lookup type? Its values will no longer be available for new selections." : "Activate this lookup type for configuration use?")" data-confirm-label="@(type.IsActive ? "Deactivate" : "Activate")" data-confirm-tone="@(type.IsActive ? "danger" : "warning")"><input type="hidden" name="id" value="@type.Id" /><input type="hidden" name="isActive" value="@(!type.IsActive)" />@Html.AntiForgeryToken()<button class="@(type.IsActive ? "danger-link" : string.Empty)" type="submit">@(type.IsActive ? UiText.Get("Deactivate") : UiText.Get("Activate"))</button></form>
+                        </div>
+                    </details>
+                }
+            </td>
+        </tr>
+    }
+    </tbody></table>
+    @if (Model.Page.Items.Count == 0) { <div class="empty-state"><span class="eyebrow">No types</span><h2>No lookup types match this filter.</h2><p class="muted">Lookup types are controlled by the platform catalog; manage their database-backed values from the values grid.</p></div> }
+</div>
+@if (Model.Page.TotalPages > 1) { <nav class="pagination" aria-label="@UiText.Get("Lookup type pages")">@for (var pageNumber = 1; pageNumber <= Model.Page.TotalPages; pageNumber++) { <a class="@(pageNumber == Model.Page.Page ? "active" : null)" aria-current="@(pageNumber == Model.Page.Page ? "page" : null)" asp-action="Index" asp-route-page="@pageNumber" asp-route-search="@Model.Page.Search" asp-route-isActive="@Context.Request.Query["isActive"]" asp-route-sortBy="@Context.Request.Query["sortBy"]" asp-route-descending="@Context.Request.Query["descending"]">@pageNumber</a> }</nav> }

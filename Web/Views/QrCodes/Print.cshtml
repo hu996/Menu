@@ -1,0 +1,21 @@
+@model RestaurantMenuPlatform.Web.Models.QrCodeManagementViewModel
+@using System.Globalization
+@{
+    Layout = null;
+    var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    var isArabic = string.Equals(culture, "ar", StringComparison.OrdinalIgnoreCase);
+}
+<!doctype html>
+<html lang="@culture" dir="@(isArabic ? "rtl" : "ltr")">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>@UiText.Get("Table QR codes") &middot; @Model.SelectedBranch?.Name</title><link rel="stylesheet" href="~/css/site.css" /></head>
+<body class="qr-print-body">
+    <header class="qr-print-header"><div><span class="eyebrow">@UiText.Get("Distribution")</span><h1>@Model.Codes.FirstOrDefault()?.RestaurantName</h1><p>@Model.SelectedBranch?.Name &middot; @UiText.Get("Table-specific guest entry points")</p></div><button class="btn btn-secondary" type="button" onclick="window.print()">@UiText.Get("Print")</button></header>
+    <main class="qr-print-grid">
+        @foreach (var code in Model.Codes.Where(x => x.TableId is not null))
+        {
+            var tableName = code.TableName ?? UiText.Get("Table");
+            <article class="qr-print-card"><img src="@Url.Action("Asset", "QrCodes", new { id = code.Id, format = "svg" })" alt="@UiText.Get("QR code for") @tableName" /><h2>@tableName</h2><p>@code.BranchName</p><small>@(code.IsActive ? UiText.Get("Active") : UiText.Get("Inactive · Reactivate before use"))</small></article>
+        }
+    </main>
+</body>
+</html>

@@ -1,0 +1,31 @@
+@model RestaurantMenuPlatform.Web.Models.BranchIndexViewModel
+@{ ViewData["Title"] = "Branches"; }
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">Operations</span><h1>Branches</h1><p class="muted">Search, filter, and maintain every location.</p></div>
+    @if (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("PlatformAdmin")) { <a class="btn btn-primary" asp-action="Create">Add branch</a> }
+</div>
+<form method="get" class="filter-bar" aria-label="@UiText.Get("Branch filters")">
+    <label class="filter-field"><span>@UiText.Get("Search")</span><input type="search" name="Search" value="@Model.Search" placeholder="@UiText.Get("Search name, slug, or address")" /></label>
+    <label class="filter-field"><span>@UiText.Get("Status")</span><select name="IsActive"><option value="">@UiText.Get("All statuses")</option><option value="true" selected="@(Model.IsActive == true)">@UiText.Get("Active")</option><option value="false" selected="@(Model.IsActive == false)">@UiText.Get("Inactive")</option></select></label>
+    <label class="filter-field"><span>@UiText.Get("Sort by")</span><select name="SortBy"><option value="name" selected="@(Model.SortBy == "name")">@UiText.Get("Name")</option><option value="address" selected="@(Model.SortBy == "address")">@UiText.Get("Address")</option><option value="status" selected="@(Model.SortBy == "status")">@UiText.Get("Status")</option></select></label>
+    <input type="hidden" name="Descending" value="@Model.Descending.ToString().ToLowerInvariant()" />
+    <div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Apply filters")</button><a class="btn btn-ghost" asp-action="Index">@UiText.Get("Reset")</a></div>
+</form>
+@if (Model.Items.Count == 0)
+{
+    <div class="empty-state"><span class="eyebrow">@UiText.Get("No branches yet")</span><h2>@UiText.Get("Create your first branch")</h2><p class="muted">@UiText.Get("Create your first branch to start assigning menus and publishing your restaurant experience.")</p>@if (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("PlatformAdmin")) { <a class="btn btn-primary" asp-action="Create">@UiText.Get("Add branch")</a> }</div>
+}
+else
+{
+    <div class="data-table" data-columns="4"><div class="table-row table-heading"><span>Name</span><span>Address</span><span>Status</span><span>Actions</span></div>
+    @foreach (var branch in Model.Items) { var displayName = UiText.Business(branch.Name, branch.Name, branch.NameAr); <div class="table-row"><span><a asp-action="Details" asp-route-id="@branch.Id">@displayName</a><small>/@branch.Slug</small></span><span>@(branch.Address ?? "—")</span><span><span class="status @(branch.IsActive ? "status-live" : "status-muted")">@(branch.IsActive ? UiText.Get("Active") : UiText.Get("Inactive"))</span></span><span><a class="text-link" asp-action="Details" asp-route-id="@branch.Id">@UiText.Get("View")</a>@if (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("PlatformAdmin")) { <text> · </text><a class="text-link" asp-action="Edit" asp-route-id="@branch.Id">@UiText.Get("Edit")</a> }</span></div> }
+    </div>
+    <div class="pagination">
+        <span class="muted">@Model.TotalCount branch(es)</span>
+        @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+        {
+            <a class="@(pageNumber == Model.Page ? "active" : "")" aria-current="@(pageNumber == Model.Page ? "page" : null)" asp-action="Index" asp-route-page="@pageNumber" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive" asp-route-sortBy="@Model.SortBy" asp-route-descending="@Model.Descending">@pageNumber</a>
+        }
+    </div>
+}

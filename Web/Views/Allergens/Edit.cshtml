@@ -1,0 +1,4 @@
+@model RestaurantMenuPlatform.Web.Models.AllergenViewModel
+@{ ViewData["Title"] = "Edit allergen"; }
+<div class="page-header"><span class="eyebrow">Catalog</span><h1>Edit @Model.Name</h1></div>
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="form-stack narrow-form"><div asp-validation-summary="ModelOnly" class="validation"></div><label asp-for="Name">English name</label><input asp-for="Name" /><label asp-for="NameAr">Arabic name</label><input asp-for="NameAr" dir="rtl" /><span asp-validation-for="Name" class="validation"></span>@Html.AntiForgeryToken()<button class="btn btn-primary" type="submit">Save changes</button></form>

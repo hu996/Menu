@@ -1,0 +1,33 @@
+@model RestaurantMenuPlatform.Web.Models.BranchViewModel
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="page-header page-header-actions">
+    <div>
+        <span class="eyebrow">Branch details</span>
+        <h1>@Model.Name</h1>
+        <p class="muted">Permanent address: /@Model.Slug</p>
+    </div>
+    @if (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("PlatformAdmin"))
+    {
+        <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit branch</a>
+    }
+</div>
+<div class="detail-grid">
+    <div class="detail-card"><span class="eyebrow">Status</span><strong>@(Model.IsActive ? "Active" : "Inactive")</strong></div>
+    <div class="detail-card"><span class="eyebrow">Phone</span><strong>@(Model.Phone ?? "Not provided")</strong></div>
+    <div class="detail-card detail-card-wide"><span class="eyebrow">Address</span><strong>@(Model.Address ?? "Not provided")</strong></div>
+    <div class="detail-card"><span class="eyebrow">Opening hours</span><strong>@(Model.OpeningHours ?? "Not provided")</strong></div>
+    <div class="detail-card"><span class="eyebrow">Location</span><strong>@(Model.Latitude?.ToString() ?? "—"), @(Model.Longitude?.ToString() ?? "—")</strong></div>
+    <div class="detail-card"><span class="eyebrow">Brand override</span><strong>@(Model.BrandPrimaryColorOverride ?? "Inherited")</strong></div>
+</div>
+@if (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("PlatformAdmin"))
+{
+    <form asp-action="SetActive" method="post" class="inline-action" data-confirm data-confirm-title="@(Model.IsActive ? "Deactivate branch" : "Activate branch")" data-confirm-message="@(Model.IsActive ? "Deactivate this branch for guests?" : "Activate this branch for guests?")" data-confirm-label="@(Model.IsActive ? "Deactivate" : "Activate")">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <input type="hidden" name="isActive" value="@(!Model.IsActive)" />
+        @Html.AntiForgeryToken()
+        <button class="btn @(Model.IsActive ? "btn-danger" : "btn-primary")" type="submit">@(Model.IsActive ? "Deactivate branch" : "Activate branch")</button>
+    </form>
+}

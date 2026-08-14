@@ -1,0 +1,199 @@
+@using System.Globalization
+@using System.Linq
+@using System.Text.Json
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var tenantSlug = User.FindFirst("tenant_slug")?.Value;
+    var tenantName = User.FindFirst("tenant_name")?.Value ?? tenantSlug ?? "MenuPlatform";
+    var tenantPath = string.IsNullOrWhiteSpace(tenantSlug) ? string.Empty : $"/r/{tenantSlug}";
+    var isPlatformAdmin = User.IsInRole("PlatformAdmin");
+    var isTenantAdmin = User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin");
+    var hasPermission = (string code) => !isPlatformAdmin && (isTenantAdmin || User.HasClaim("permission", code));
+    var currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    var isArabic = string.Equals(currentCulture, "ar", StringComparison.OrdinalIgnoreCase);
+    var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+    var languageSwitchCulture = isArabic ? "en" : "ar";
+    var languageSwitchLabel = isArabic ? UiText.Get("Switch to English") : UiText.Get("Switch to Arabic");
+    var userName = User.Identity?.Name ?? "User";
+    var roleName = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? UiText.Get("Viewer");
+    var feedback = new[] { (Key: "Success", Tone: "success"), (Key: "Error", Tone: "danger"), (Key: "Warning", Tone: "warning"), (Key: "Info", Tone: "info"), (Key: "ImageError", Tone: "danger") }
+        .Select(item => (item.Tone, Message: UiText.Feedback(TempData.Peek(item.Key)?.ToString())))
+        .Where(item => !string.IsNullOrWhiteSpace(item.Message))
+        .ToArray();
+    var modelStateErrors = ViewData.ModelState
+        .Where(entry => entry.Value?.Errors.Count > 0)
+        .ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value!.Errors.Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage) ? UiText.Get("Please correct this field.") : UiText.Feedback(error.ErrorMessage)).ToArray());
+}
+<!DOCTYPE html>
+<html lang="@currentCulture" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Restaurant Menu Platform</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="@(isAuthenticated ? "admin-shell" : "public-shell")">
+    <a class="skip-link" href="#main-content">@UiText.Get("Skip to content")</a>
+    @if (isAuthenticated)
+    {
+        <div class="admin-layout">
+            <button type="button" class="sidebar-backdrop" data-sidebar-close aria-label="@UiText.Get("Close navigation")"></button>
+            <aside class="sidebar" id="adminSidebar" aria-label="@UiText.Get("Administration navigation")">
+                <div class="sidebar-topline">
+                    <a class="brand sidebar-brand" href="@(isPlatformAdmin ? "/PlatformRestaurants/Index" : $"{tenantPath}/Dashboard/Index")" aria-label="MenuPlatform">
+                        <span class="brand-mark" aria-hidden="true">M</span>
+                        <span class="brand-copy"><strong>MenuPlatform</strong><small>@UiText.Get("Restaurant workspace")</small></span>
+                    </a>
+                    <button type="button" class="sidebar-toggle desktop-sidebar-toggle" data-sidebar-toggle aria-controls="adminSidebar" aria-expanded="true" title="@UiText.Get("Collapse sidebar")">
+                        <span data-icon="chevron-left" aria-hidden="true"></span><span class="sidebar-toggle-label">@UiText.Get("Collapse sidebar")</span>
+                    </button>
+                    <button type="button" class="sidebar-toggle sidebar-mobile-close" data-sidebar-close aria-controls="adminSidebar" aria-label="@UiText.Get("Close navigation")"><span aria-hidden="true">×</span></button>
+                </div>
+                <nav class="sidebar-nav">
+                    @if (isPlatformAdmin)
+                    {
+                        <div class="sidebar-group platform-sidebar-group">
+                            <span>@UiText.Get("Platform")</span>
+                            <a data-nav-link href="/PlatformRestaurants/Index" title="@UiText.Get("Restaurants")"><span class="sidebar-icon" data-icon="building" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Restaurants")</span></a>
+                            <a data-nav-link href="/PlatformPlans/Index" title="@UiText.Get("Platform plans")"><span class="sidebar-icon" data-icon="briefcase" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Platform plans")</span></a>
+                        </div>
+                    }
+                    @if (hasPermission("Restaurant.View")) { <a data-nav-link href="@(tenantPath)/Dashboard/Index" title="@UiText.Get("Dashboard")"><span class="sidebar-icon" data-icon="grid" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Dashboard")</span></a> }
+                    <div class="sidebar-group">
+                        <span>@UiText.Get("Restaurant")</span>
+                        @if (hasPermission("Restaurant.View"))
+                        {
+                            <a data-nav-link href="@(tenantPath)/Restaurant/Index" title="@UiText.Get("Overview")"><span class="sidebar-icon" data-icon="home" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Overview")</span></a>
+                        }
+                        @if (hasPermission("Branch.View")) { <a data-nav-link href="@(tenantPath)/Branches/Index" title="@UiText.Get("Branches")"><span class="sidebar-icon" data-icon="map-pin" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Branches")</span></a> }
+                        @if (hasPermission("Branch.View")) { <a data-nav-link href="@(tenantPath)/Tables/Index" title="@UiText.Get("Tables")"><span class="sidebar-icon" data-icon="grid" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Tables")</span></a> }
+                    </div>
+                    @if (hasPermission("Menu.View"))
+                    {
+                        <div class="sidebar-group">
+                            <span>@UiText.Get("Menu management")</span>
+                            <a data-nav-link href="@(tenantPath)/Menus/Index" title="@UiText.Get("Menus")"><span class="sidebar-icon" data-icon="book-open" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Menus")</span></a>
+                        </div>
+                    }
+                    <div class="sidebar-group">
+                        <span>@UiText.Get("Catalog")</span>
+                        @if (hasPermission("Product.View")) { <a data-nav-link href="@(tenantPath)/Products/Index" title="@UiText.Get("Products")"><span class="sidebar-icon" data-icon="layers" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Products")</span></a> }
+                        @if (hasPermission("Ingredient.View"))
+                        {
+                            <a data-nav-link href="@(tenantPath)/Ingredients/Index" title="@UiText.Get("Ingredients")"><span class="sidebar-icon" data-icon="leaf" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Ingredients")</span></a>
+                        }
+                        @if (hasPermission("Allergen.View"))
+                        {
+                            <a data-nav-link href="@(tenantPath)/Allergens/Index" title="@UiText.Get("Allergens")"><span class="sidebar-icon" data-icon="shield" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Allergens")</span></a>
+                        }
+                        @if (hasPermission("Modifier.View"))
+                        {
+                            <a data-nav-link href="@(tenantPath)/Modifiers/Index" title="@UiText.Get("Modifiers")"><span class="sidebar-icon" data-icon="sliders" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Modifiers")</span></a>
+                        }
+                    </div>
+                    @if (hasPermission("Pricing.View") || hasPermission("QR.View") || hasPermission("Orders.View"))
+                    {
+                        <div class="sidebar-group">
+                            <span>@UiText.Get("Operations")</span>
+                            @if (hasPermission("Pricing.View"))
+                            {
+                                <a data-nav-link href="@(tenantPath)/Pricing/Index" title="@UiText.Get("Pricing")"><span class="sidebar-icon" data-icon="tag" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Pricing")</span></a>
+                            }
+                            @if (hasPermission("QR.View"))
+                            {
+                                <a data-nav-link href="@(tenantPath)/QrCodes/Index" title="@UiText.Get("QR codes")"><span class="sidebar-icon" data-icon="qr-code" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("QR codes")</span></a>
+                            }
+                            @if (hasPermission("Orders.View"))
+                            {
+                                <a data-nav-link href="@(tenantPath)/Orders/Index" title="@UiText.Get("Orders")"><span class="sidebar-icon" data-icon="clipboard" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Orders")</span></a>
+                            }
+                        </div>
+                    }
+                    <div class="sidebar-group">
+                        <span>@UiText.Get("Insights")</span>
+                        @if (hasPermission("Analytics.View")) { <a data-nav-link href="@(tenantPath)/Dashboard/Index#analytics" title="@UiText.Get("Analytics")"><span class="sidebar-icon" data-icon="activity" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Analytics")</span></a> }
+                    </div>
+                    @if (hasPermission("User.View") || isTenantAdmin || hasPermission("Subscription.View") || hasPermission("Audit.View"))
+                    {
+                        <div class="sidebar-group">
+                            <span>@UiText.Get("Administration")</span>
+                            @if (hasPermission("User.View")) { <a data-nav-link href="@(tenantPath)/Users/Index" title="@UiText.Get("Users & roles")"><span class="sidebar-icon" data-icon="users" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Users & roles")</span></a> }
+                            @if (isTenantAdmin) {
+                                <a data-nav-link href="@(tenantPath)/LookupTypes/Index" title="@UiText.Get("Lookup types")"><span class="sidebar-icon" data-icon="list" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Lookup types")</span></a>
+                                <a data-nav-link href="@(tenantPath)/Lookups/Index" title="@UiText.Get("Lookup values")"><span class="sidebar-icon" data-icon="sliders" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Lookup values")</span></a>
+                            }
+                            @if (hasPermission("Subscription.View")) { <a data-nav-link href="@(tenantPath)/Billing/Index" title="@UiText.Get("Subscription")"><span class="sidebar-icon" data-icon="credit-card" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Subscription")</span></a> }
+                            @if (hasPermission("Audit.View")) { <a data-nav-link href="@(tenantPath)/Audit/Index" title="@UiText.Get("Audit")"><span class="sidebar-icon" data-icon="history" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Audit")</span></a> }
+                        </div>
+                    }
+                </nav>
+                <div class="sidebar-footer">
+                    <span class="nav-user"><span class="avatar" aria-hidden="true">@userName.Substring(0, 1).ToUpperInvariant()</span><span class="sidebar-link-label nav-user-copy"><strong>@userName</strong><small>@roleName</small></span></span>
+                    <a href="@(isPlatformAdmin ? "/Account/ChangePassword" : $"{tenantPath}/Account/ChangePassword")"><span class="sidebar-icon" data-icon="lock" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Security")</span></a>
+                    <a href="/Language/Set?culture=@languageSwitchCulture&amp;returnUrl=@Uri.EscapeDataString(returnUrl)" lang="@(isArabic ? "en" : "ar")"><span class="sidebar-icon" data-icon="globe" aria-hidden="true"></span><span class="sidebar-link-label">@languageSwitchLabel</span></a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <button class="nav-link-button" type="submit"><span class="sidebar-icon" data-icon="log-out" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Sign out")</span></button>
+                    </form>
+                </div>
+            </aside>
+            <main class="admin-main" id="main-content" tabindex="-1">
+                <div class="mobile-admin-bar">
+                    <button type="button" class="sidebar-toggle mobile-sidebar-toggle" data-sidebar-toggle aria-controls="adminSidebar" aria-expanded="false" title="@UiText.Get("Open navigation")"><span data-icon="menu" aria-hidden="true"></span><span class="sr-only">@UiText.Get("Open navigation")</span></button>
+                    <span class="brand"><span class="brand-mark" aria-hidden="true">M</span><strong>MenuPlatform</strong></span>
+                    <a class="mobile-language-switch" href="/Language/Set?culture=@languageSwitchCulture&amp;returnUrl=@Uri.EscapeDataString(returnUrl)" lang="@(isArabic ? "en" : "ar")">@languageSwitchLabel</a>
+                </div>
+                <header class="admin-context-bar">
+                    <div class="context-bar-inner">
+                        <div class="context-intro"><span class="context-kicker">@UiText.Get(isPlatformAdmin ? "Platform" : "Restaurant")</span><strong>@(isPlatformAdmin ? UiText.Get("Platform administration") : tenantName)</strong></div>
+                        <div class="context-items">
+                            <span class="context-chip"><span data-icon="map-pin" aria-hidden="true"></span><span><small>@UiText.Get("Branch")</small>@UiText.Get("All branches")</span></span>
+                            <a class="context-chip context-link" href="/Language/Set?culture=@languageSwitchCulture&amp;returnUrl=@Uri.EscapeDataString(returnUrl)" lang="@(isArabic ? "en" : "ar")"><span data-icon="globe" aria-hidden="true"></span><span><small>@UiText.Get("Language")</small>@currentCulture.ToUpperInvariant()</span></a>
+                            <span class="context-chip user-chip"><span class="avatar" aria-hidden="true">@userName.Substring(0, 1).ToUpperInvariant()</span><span><small>@UiText.Get("User")</small>@userName</span></span>
+                        </div>
+                    </div>
+                </header>
+                <div class="container">@RenderBody()</div>
+                <footer class="footer">Restaurant Menu Platform <span aria-hidden="true">·</span> @UiText.Get("Hospitality, thoughtfully managed.")</footer>
+            </main>
+        </div>
+    }
+    else
+    {
+        <header class="nav public-nav">
+            <a class="brand" asp-controller="Home" asp-action="Index"><span class="brand-mark" aria-hidden="true">M</span><strong>MenuPlatform</strong></a>
+            <nav>
+                <a asp-controller="Home" asp-action="Index">@UiText.Get("Home")</a>
+                <a asp-controller="Account" asp-action="Login">@UiText.Get("Sign in")</a>
+                <a href="/Language/Set?culture=@languageSwitchCulture&amp;returnUrl=@Uri.EscapeDataString(returnUrl)" lang="@(isArabic ? "en" : "ar")">@languageSwitchLabel</a>
+            </nav>
+        </header>
+        <main class="container" id="main-content" tabindex="-1">@RenderBody()</main>
+    }
+
+    @if (!isAuthenticated)
+    {
+        <footer class="footer">Restaurant Menu Platform <span aria-hidden="true">·</span> @UiText.Get("Hospitality, thoughtfully managed.")</footer>
+    }
+    <div class="toast-stack" data-toast-stack aria-live="polite" aria-atomic="true"></div>
+    <div data-server-feedback hidden>
+        @foreach (var item in feedback)
+        {
+            <div data-feedback data-tone="@item.Tone">@item.Message</div>
+        }
+    </div>
+    <script type="application/json" data-model-state>@Html.Raw(JsonSerializer.Serialize(modelStateErrors))</script>
+    <div class="modal" data-modal hidden aria-hidden="true">
+        <button class="modal-backdrop" type="button" data-modal-close aria-label="@UiText.Get("Close")"></button>
+        <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+            <div class="modal-header"><div><span class="eyebrow">@UiText.Get("Confirmation")</span><h2 id="modal-title"></h2></div><button class="icon-button" type="button" data-modal-close aria-label="@UiText.Get("Close")">×</button></div>
+            <div class="modal-body" id="modal-description" data-modal-body></div>
+            <div class="modal-footer"><button class="btn btn-secondary" type="button" data-modal-close>@UiText.Get("Cancel")</button><button class="btn btn-primary" type="button" data-modal-confirm>@UiText.Get("Confirm")</button></div>
+        </section>
+    </div>
+    <script src="~/js/site.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,55 @@
+@model RestaurantMenuPlatform.Web.Models.ProductIndexViewModel
+@{
+    ViewData["Title"] = "Products";
+    var productPage = Model.Page;
+    var availableCount = productPage.Items.Count(item => item.IsAvailable);
+    var unavailableCount = productPage.Items.Count - availableCount;
+}
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">@UiText.Get("Product catalog")</span><h1>@UiText.Get("Products")</h1><p class="muted">@UiText.Get("Search, filter, and maintain the products shared by your menus.")</p></div>
+    <div class="action-row"><a class="btn btn-primary" asp-controller="Menus" asp-action="Index">@UiText.Get("Open menu studio")</a></div>
+</div>
+
+<section class="catalog-summary" aria-label="@UiText.Get("Product catalog summary")">
+    <div><span class="eyebrow">@UiText.Get("Catalog")</span><strong>@productPage.TotalCount</strong><small>@UiText.Get("Total products in results")</small></div>
+    <div><span class="eyebrow">@UiText.Get("Available")</span><strong>@availableCount</strong><small>@UiText.Get("On the current page")</small></div>
+    <div><span class="eyebrow">@UiText.Get("Attention")</span><strong>@unavailableCount</strong><small>@UiText.Get("Unavailable on the current page")</small></div>
+</section>
+
+<form method="get" class="filter-bar product-filter-bar" aria-label="@UiText.Get("Product filters")">
+    <label class="filter-field"><span>@UiText.Get("Search")</span><input type="search" name="search" value="@productPage.Search" placeholder="@UiText.Get("Search English or Arabic content")" /></label>
+    <label class="filter-field"><span>@UiText.Get("Menu")</span><select name="menuId"><option value="">@UiText.Get("All menus")</option>@foreach (var menu in Model.Options.Menus) { <option value="@menu.Id" selected="@(productPage.MenuId == menu.Id)">@UiText.Business(menu.Name, menu.Name, menu.NameAr)</option> }</select></label>
+    <label class="filter-field"><span>@UiText.Get("Category")</span><select name="categoryId"><option value="">@UiText.Get("All categories")</option>@foreach (var category in Model.Options.Categories) { <option value="@category.Id" selected="@(productPage.CategoryId == category.Id)">@category.MenuName &middot; @category.Name</option> }</select></label>
+    <label class="filter-field"><span>@UiText.Get("Branch")</span><select name="branchId"><option value="">@UiText.Get("All branches")</option>@foreach (var branch in Model.Options.Branches) { <option value="@branch.Id" selected="@(productPage.BranchId == branch.Id)">@UiText.Business(branch.Name, branch.Name, branch.NameAr)</option> }</select></label>
+    <label class="filter-field"><span>@UiText.Get("Availability")</span><select name="isAvailable"><option value="">@UiText.Get("All availability")</option><option value="true" selected="@(productPage.IsAvailable == true)">@UiText.Get("Available")</option><option value="false" selected="@(productPage.IsAvailable == false)">@UiText.Get("Unavailable")</option></select></label>
+    <label class="filter-field"><span>@UiText.Get("Sort by")</span><select name="sortBy"><option value="name" selected="@(productPage.SortBy == "name")">@UiText.Get("Name")</option><option value="price" selected="@(productPage.SortBy == "price")">@UiText.Get("Price")</option><option value="category" selected="@(productPage.SortBy == "category")">@UiText.Get("Category")</option><option value="sort" selected="@(productPage.SortBy == "sort")">@UiText.Get("Display order")</option></select></label>
+    <input type="hidden" name="descending" value="@productPage.Descending.ToString().ToLowerInvariant()" />
+    <div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Apply filters")</button><a class="btn btn-ghost" asp-action="Index">@UiText.Get("Reset")</a></div>
+</form>
+
+@if (productPage.Items.Count == 0)
+{
+    <div class="empty-state"><span class="eyebrow">@UiText.Get("No products yet")</span><h2>@UiText.Get("Add your first product")</h2><p class="muted">@UiText.Get("Add your first product from a menu category to start building your menu.")</p><a class="btn btn-primary" asp-controller="Menus" asp-action="Index">@UiText.Get("Open menu studio")</a></div>
+}
+else
+{
+    <form asp-action="BulkAvailability" method="post" data-require-selection="true" data-confirm data-confirm-title="Update product availability" data-confirm-message="Apply this availability change to every selected product? The selected products will immediately change on the public menu." data-confirm-label="Confirm update" data-confirm-tone="warning">
+        @Html.AntiForgeryToken()
+        @if (Model.CanBulkEdit)
+        {
+            <div class="action-row bulk-actions"><span class="muted">@UiText.Get("Select products for a bulk availability update.")</span><button class="btn btn-secondary" name="isAvailable" value="true" type="submit">@UiText.Get("Mark available")</button><button class="btn btn-secondary" name="isAvailable" value="false" type="submit">@UiText.Get("Mark unavailable")</button></div>
+        }
+        <div class="product-grid">
+            @foreach (var item in productPage.Items)
+            {
+                <article class="product-card">
+                    <label class="product-select"><input type="checkbox" name="itemIds" value="@item.Id" aria-label="@UiText.Get("Select") @item.Name" /></label>
+                    @if (!string.IsNullOrWhiteSpace(item.PrimaryImageUrl)) { <img src="@item.PrimaryImageUrl" alt="@item.Name" class="product-card-image" loading="lazy" /> } else { <div class="product-card-image product-card-placeholder"><span class="placeholder-icon" data-icon="image" aria-hidden="true"></span><strong>@UiText.Get("No image")</strong><small>@UiText.Get("Open editor to add")</small></div> }
+                    <div class="product-card-body"><div class="eyebrow">@(item.ProductTypeCode ?? UiText.Get("Unclassified")) &middot; @item.ImageCount @UiText.Get("image(s)")</div><h2>@UiText.Business(item.Name, item.Name, item.NameAr)</h2>@if (!string.IsNullOrWhiteSpace(item.NameAr) && !UiText.IsArabic) { <p class="arabic-text" dir="rtl">@item.NameAr</p> }<p class="muted">@item.MenuName &middot; @item.CategoryName</p><p class="catalog-scope"><span class="eyebrow">@UiText.Get("Branch scope")</span>@item.BranchScope</p><strong>@item.Price.ToString("0.00") @item.Currency</strong><span class="status @(item.IsAvailable ? "status-live" : "status-muted")">@(item.IsAvailable ? UiText.Get("Available") : UiText.Get("Unavailable"))</span><a class="btn btn-secondary" asp-controller="Menus" asp-action="EditItem" asp-route-id="@item.Id">@UiText.Get("Open editor")</a></div>
+                </article>
+            }
+        </div>
+    </form>
+    <nav class="pagination" aria-label="@UiText.Get("Product pages")"><span class="muted">@productPage.TotalCount @UiText.Get("product(s)")</span>@for (var pageNumber = 1; pageNumber <= productPage.TotalPages; pageNumber++) { <a class="@(pageNumber == productPage.Page ? "active" : null)" aria-current="@(pageNumber == productPage.Page ? "page" : null)" asp-action="Index" asp-route-page="@pageNumber" asp-route-pageSize="@productPage.PageSize" asp-route-search="@productPage.Search" asp-route-menuId="@productPage.MenuId" asp-route-categoryId="@productPage.CategoryId" asp-route-branchId="@productPage.BranchId" asp-route-isAvailable="@productPage.IsAvailable" asp-route-sortBy="@productPage.SortBy" asp-route-descending="@productPage.Descending">@pageNumber</a> }</nav>
+}

@@ -1,0 +1,49 @@
+@model RestaurantMenuPlatform.Web.Models.PricingViewModel
+@{
+    ViewData["Title"] = "Pricing management";
+}
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">Commercial controls</span><h1>Pricing management</h1><p class="muted">Preview an adjustment, confirm it, and keep a complete tenant-scoped history.</p><p class="muted">Effective price = base product price, with a branch override applied when a branch is selected.</p></div>
+</div>
+<form asp-action="Preview" method="post" class="form-stack premium-form pricing-form">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <section class="form-section"><div class="form-section-heading"><span class="eyebrow">Adjustment scope</span><h2>Pricing change</h2><p>Select the server-resolved scope, operation, and value before previewing.</p></div><div class="form-grid">
+        <div><label asp-for="ScopeCode">Scope</label><select asp-for="ScopeCode"><option value="">Select scope</option>@foreach (var scope in Model.Scopes) { <option value="@scope.Code">@scope.NameEn</option> }</select></div>
+        <div><label asp-for="OperationCode">Operation</label><select asp-for="OperationCode"><option value="">Select operation</option>@foreach (var operation in Model.Operations) { <option value="@operation.Code">@operation.NameEn</option> }</select></div>
+        <div><label asp-for="CategoryId">Category</label><select asp-for="CategoryId"><option value="">All / not applicable</option>@foreach (var category in Model.Categories) { <option value="@category.Id">@UiText.Business(category.Name, category.Name, category.NameAr)</option> }</select></div>
+        <div><label asp-for="BranchId">Branch</label><select asp-for="BranchId"><option value="">Global price</option>@foreach (var branch in Model.Branches) { <option value="@branch.Id">@UiText.Business(branch.Name, branch.Name, branch.NameAr)</option> }</select></div>
+        <div><label asp-for="Value">Value</label><input asp-for="Value" type="number" min="0" step="0.01" /></div>
+        <div><label asp-for="Reason">Reason</label><input asp-for="Reason" /></div>
+    </div></section>
+    <div class="section-heading"><div><span class="eyebrow">Products</span><h2>Choose products</h2></div><span class="muted">For category or branch scope, the server resolves the complete set.</span></div>
+    <div class="data-table pricing-items">
+        <div class="table-row table-heading"><span></span><span>Product</span><span>Current price</span><span>Currency</span><span>Availability</span></div>
+        @foreach (var item in Model.Items)
+        {
+            <label class="table-row"><span><input type="checkbox" name="MenuItemIds" value="@item.Id" @(Model.MenuItemIds.Contains(item.Id) ? "checked" : null) /></span><span>@UiText.Business(item.Name, item.Name, item.NameAr)</span><span>@item.Price.ToString("0.00")</span><span>@item.Currency</span><span>@(item.IsAvailable ? UiText.Get("Available") : UiText.Get("Unavailable"))</span></label>
+        }
+    </div>
+    <div class="form-actions-sticky"><span class="muted">The server recalculates the affected set before confirmation.</span><button class="btn btn-primary" type="submit">Preview pricing change</button></div>
+</form>
+
+@if (Model.Preview is not null)
+{
+    <section class="pricing-preview">
+        <div class="section-heading"><div><span class="eyebrow">Confirmation required</span><h2>Review before applying</h2><p class="muted">The server recalculates and validates this snapshot again during confirmation.</p></div></div>
+        <div class="data-table"><div class="table-row table-heading"><span>Product</span><span>Category</span><span>Old</span><span>Operation / change</span><span>New</span><span>Branch</span></div>
+        @foreach (var line in Model.Preview.Lines) { <div class="table-row"><span>@UiText.Business(line.ItemName, line.ItemName, line.ItemNameAr)</span><span>@UiText.Business(line.CategoryName, line.CategoryName, line.CategoryNameAr)</span><span>@line.OldPrice.ToString("0.00") @line.Currency</span><span>@Model.OperationCode · @line.ChangeAmount.ToString("+0.00;-0.00;0.00")</span><span>@line.NewPrice.ToString("0.00") @line.Currency</span><span>@UiText.Business(line.BranchName ?? "Global", line.BranchName, line.BranchNameAr)</span></div> }
+        </div>
+        <form asp-action="Apply" method="post" class="action-row" data-confirm data-confirm-title="Apply pricing change" data-confirm-message="Apply this pricing change atomically to the selected products?" data-confirm-label="Confirm and apply">
+            <input type="hidden" asp-for="ScopeCode" /><input type="hidden" asp-for="OperationCode" /><input type="hidden" asp-for="CategoryId" /><input type="hidden" asp-for="BranchId" /><input type="hidden" asp-for="Value" /><input type="hidden" asp-for="Reason" />
+            @foreach (var id in Model.MenuItemIds) { <input type="hidden" name="MenuItemIds" value="@id" /> }
+            @Html.AntiForgeryToken()<button class="btn btn-primary" type="submit">Confirm and apply atomically</button>
+        </form>
+    </section>
+}
+
+<section class="pricing-history">
+    <div class="section-heading"><div><span class="eyebrow">Traceability</span><h2>Price history</h2></div></div>
+    @if (Model.History.Count == 0) { <div class="empty-state"><h2>No price changes yet.</h2></div> }
+    else { <div class="data-table"><div class="table-row table-heading"><span>Product / branch</span><span>Previous</span><span>New</span><span>Operation / change</span><span>Reason</span><span>When</span></div>@foreach (var entry in Model.History) { <div class="table-row"><span>@UiText.Business(entry.ItemName, entry.ItemName, entry.ItemNameAr) <small>@UiText.Business(entry.BranchName ?? "Global", entry.BranchName, entry.BranchNameAr)</small></span><span>@entry.PreviousPrice.ToString("0.00")</span><span>@entry.NewPrice.ToString("0.00")</span><span>@entry.OperationCode<small>Change @((entry.ChangeAmount ?? 0m).ToString("+0.00;-0.00;0.00"))</small></span><span>@(entry.Reason ?? "—")<small>Actor @(entry.ActorUserId?.ToString("D") ?? "system")</small></span><span>@entry.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</span></div> }</div> }
+</section>

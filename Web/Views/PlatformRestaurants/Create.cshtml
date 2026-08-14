@@ -1,0 +1,39 @@
+@model RestaurantMenuPlatform.Web.Models.PlatformRestaurantCreateViewModel
+@{ ViewData["Title"] = UiText.Get("Add restaurant"); }
+
+<div class="page-header"><span class="eyebrow">@UiText.Get("Platform administration")</span><h1>@UiText.Get("Add restaurant")</h1><p class="muted">@UiText.Get("Provision the workspace and its first owner. Branches, menus, categories, products, pricing, QR, and orders remain the owner's work.")</p></div>
+
+<div class="setup-context-banner"><strong>@UiText.Get("Short provisioning")</strong><span>@UiText.Get("Restaurant identity, owner access, and plan are all this step requires.")</span></div>
+
+<form asp-action="Create" method="post" class="form-stack premium-form">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Restaurant")</span><h2>@UiText.Get("Restaurant information")</h2><p class="muted">@UiText.Get("The workspace starts operationally empty by design.")</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="NameEn"></label><input asp-for="NameEn" autocomplete="organization" /><span asp-validation-for="NameEn" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="NameAr"></label><input asp-for="NameAr" dir="rtl" /><span asp-validation-for="NameAr" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="Slug"></label><input asp-for="Slug" autocomplete="off" placeholder="your-restaurant" /><span asp-validation-for="Slug" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="Phone"></label><input asp-for="Phone" autocomplete="tel" /><span asp-validation-for="Phone" class="field-validation"></span></div>
+            <div class="form-field form-field-full"><label asp-for="Address"></label><textarea asp-for="Address" rows="3"></textarea><span asp-validation-for="Address" class="field-validation"></span></div>
+        </div>
+    </section>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Owner")</span><h2>@UiText.Get("Owner access")</h2><p class="muted">@UiText.Get("Use an existing registered email to assign that user, or set a secure initial password for a new owner.")</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="OwnerName"></label><input asp-for="OwnerName" autocomplete="name" /><span asp-validation-for="OwnerName" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="OwnerEmail"></label><input asp-for="OwnerEmail" type="email" autocomplete="email" /><span asp-validation-for="OwnerEmail" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="OwnerPassword"></label><input asp-for="OwnerPassword" type="password" autocomplete="new-password" /><span class="field-hint">@UiText.Get("Required only for a new owner; at least 10 characters with upper/lowercase, a number, and a symbol.")</span><span asp-validation-for="OwnerPassword" class="field-validation"></span></div>
+        </div>
+    </section>
+    <section class="form-section">
+        <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Plan")</span><h2>@UiText.Get("Commercial defaults")</h2><p class="muted">@UiText.Get("The selected plan controls entitlements inside the restaurant workspace.")</p></div>
+        <div class="form-grid">
+            <div class="form-field"><label asp-for="PlanId"></label><select asp-for="PlanId"><option value="">@UiText.Get("Select plan")</option>@foreach (var plan in Model.Plans) { <option value="@plan.Id">@plan.Name · @plan.MaxBranches @UiText.Get("branches") · @plan.MaxMenuItems @UiText.Get("items") · @plan.MaxUsers @UiText.Get("users")</option> }</select><span asp-validation-for="PlanId" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="Currency"></label><select asp-for="Currency"><option value="">@UiText.Get("Select currency")</option>@foreach (var currency in Model.Currencies) { <option value="@currency.Code">@currency.NameEn (@currency.Code)</option> }</select><span asp-validation-for="Currency" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="DefaultLanguage"></label><select asp-for="DefaultLanguage"><option value="">@UiText.Get("Select language")</option>@foreach (var language in Model.Languages) { <option value="@language.Code">@language.NameEn</option> }</select><span asp-validation-for="DefaultLanguage" class="field-validation"></span></div>
+        </div>
+    </section>
+    @Html.AntiForgeryToken()
+    <div class="form-actions-sticky"><a class="btn btn-secondary" asp-action="Index">@UiText.Get("Cancel")</a><button class="btn btn-primary" type="submit">@UiText.Get("Create restaurant")</button></div>
+</form>

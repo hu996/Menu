@@ -1,0 +1,10 @@
+@model RestaurantMenuPlatform.Web.Models.ErrorViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+<section class="error-state">
+    <span class="eyebrow">Error @Model.StatusCode</span>
+    <h1>@Model.Title</h1>
+    <p class="muted">@Model.Message</p>
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Return home</a>
+</section>

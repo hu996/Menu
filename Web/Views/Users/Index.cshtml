@@ -1,0 +1,30 @@
+@model RestaurantMenuPlatform.Web.Models.UserIndexViewModel
+@{
+    ViewData["Title"] = "Users";
+    var restaurantName = User.FindFirst("tenant_name")?.Value ?? User.FindFirst("tenant_slug")?.Value ?? "Current restaurant";
+}
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">People & access</span><h1>Users</h1><p class="muted">Manage memberships and permission scope for <strong>@restaurantName</strong>.</p></div>
+    @if (User.HasClaim("permission", "User.Create")) { <a class="btn btn-primary" asp-action="Create">Add user</a> }
+</div>
+<div class="context-card"><span class="eyebrow">Restaurant context</span><strong>@restaurantName</strong><p class="muted">The active restaurant is selected from your authenticated membership. It cannot be changed in this form.</p></div>
+<form method="get" class="filter-bar" aria-label="@UiText.Get("User filters")"><label class="filter-field"><span>@UiText.Get("Search")</span><input type="search" name="search" value="@Model.Page.Search" placeholder="@UiText.Get("Search name or email")" /></label><div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Apply filters")</button><a class="btn btn-ghost" asp-action="Index">@UiText.Get("Reset")</a></div></form>
+<div class="data-table" data-columns="8">
+    <div class="table-row table-heading"><span>Name</span><span>Email</span><span>Role</span><span>Branch scope</span><span>Permissions</span><span>Last sign-in</span><span>Status</span><span></span></div>
+    @foreach (var user in Model.Page.Items)
+    {
+        <div class="table-row">
+            <span>@user.DisplayName</span><span>@user.Email</span><span>@user.Role</span><span>@(user.BranchName ?? "All branches")</span><span>@user.PermissionCount direct</span><span>@(user.LastLoginAtUtc?.ToLocalTime().ToString("g") ?? "Never")</span>
+            <span><span class="status @(user.IsActive ? "status-live" : "status-muted")">@(user.IsActive ? UiText.Get("Active") : UiText.Get("Inactive"))</span></span>
+            <span class="table-actions">
+                @if (User.HasClaim("permission", "User.Edit")) { <a class="text-link" asp-action="Edit" asp-route-id="@user.MembershipId">Edit</a> }
+                @if (User.HasClaim("permission", "User.Deactivate"))
+                {
+                    <form asp-action="SetActive" method="post" class="inline-form" data-confirm data-confirm-title="@(user.IsActive ? "Deactivate membership" : "Activate membership")" data-confirm-message="@(user.IsActive ? $"Deactivate {user.DisplayName}'s membership? They will lose access to this restaurant workspace." : $"Activate {user.DisplayName}'s membership and restore access to this restaurant workspace?")" data-confirm-label="@(user.IsActive ? "Deactivate" : "Activate")" data-confirm-tone="@(user.IsActive ? "danger" : "warning")"><input type="hidden" name="id" value="@user.MembershipId" /><input type="hidden" name="isActive" value="@(!user.IsActive)" />@Html.AntiForgeryToken()<button class="text-link @(user.IsActive ? "danger-link" : string.Empty)" type="submit">@(user.IsActive ? UiText.Get("Deactivate") : UiText.Get("Activate"))</button></form>
+                }
+            </span>
+        </div>
+    }
+</div>
+@if (Model.Page.Items.Count == 0) { <div class="empty-state"><h2>No memberships found.</h2><p class="muted">Add a user or change the search.</p></div> }
+@if (Model.Page.TotalPages > 1) { <nav class="pagination" aria-label="@UiText.Get("User pages")">@for (var pageNumber = 1; pageNumber <= Model.Page.TotalPages; pageNumber++) { <a class="@(pageNumber == Model.Page.Page ? "active" : null)" aria-current="@(pageNumber == Model.Page.Page ? "page" : null)" asp-action="Index" asp-route-page="@pageNumber" asp-route-search="@Model.Page.Search">@pageNumber</a> }</nav> }

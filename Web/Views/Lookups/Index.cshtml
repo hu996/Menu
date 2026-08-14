@@ -1,0 +1,95 @@
+@model RestaurantMenuPlatform.Web.Models.LookupIndexViewModel
+@{
+    ViewData["Title"] = "Lookup values";
+}
+
+<div class="page-header page-header-actions">
+    <div>
+        <span class="eyebrow">Configuration center</span>
+        <h1>Lookup values</h1>
+        <p class="muted">Tenant values are database-backed and used immediately by menu and workspace forms.</p>
+    </div>
+    <div class="table-actions">
+        <a class="btn btn-secondary" asp-controller="LookupTypes" asp-action="Index">Lookup types</a>
+        <a class="btn btn-primary" asp-action="Create">Add value</a>
+    </div>
+</div>
+
+
+<form method="get" class="filter-bar" aria-label="@UiText.Get("Lookup filters")">
+    <label class="filter-field"><span>@UiText.Get("Search")</span><input type="search" name="search" value="@Model.Page.Search" placeholder="@UiText.Get("Search code, type, name, or description")" /></label>
+    <label class="filter-field"><span>@UiText.Get("Type")</span><select name="type">
+        <option value="">All lookup types</option>
+        @foreach (var type in Model.Types)
+        {
+            <option value="@type.Code" selected="@(string.Equals(type.Code, Model.Page.Type, StringComparison.Ordinal) ? "selected" : null)">@type.NameEn (@type.Code)</option>
+        }
+    </select></label>
+    <label class="filter-field"><span>@UiText.Get("Status")</span><select name="isActive">
+        <option value="">All statuses</option>
+        <option value="true" selected="@(Context.Request.Query["isActive"] == "true" ? "selected" : null)">Active</option>
+        <option value="false" selected="@(Context.Request.Query["isActive"] == "false" ? "selected" : null)">Inactive</option>
+    </select></label>
+    <label class="filter-field"><span>@UiText.Get("Sort by")</span><select name="sortBy">
+        <option value="type" selected="@(Context.Request.Query["sortBy"] == "type" ? "selected" : null)">Type</option>
+        <option value="code" selected="@(Context.Request.Query["sortBy"] == "code" ? "selected" : null)">Code</option>
+        <option value="english" selected="@(Context.Request.Query["sortBy"] == "english" ? "selected" : null)">English</option>
+        <option value="arabic" selected="@(Context.Request.Query["sortBy"] == "arabic" ? "selected" : null)">Arabic</option>
+        <option value="order" selected="@(Context.Request.Query["sortBy"] == "order" ? "selected" : null)">Order</option>
+        <option value="status" selected="@(Context.Request.Query["sortBy"] == "status" ? "selected" : null)">Status</option>
+    </select></label>
+    <label class="checkbox-label"><input type="checkbox" name="descending" value="true" @(Context.Request.Query["descending"] == "true" ? "checked" : null) /> <span>Descending</span></label>
+    <div class="filter-actions"><button class="btn btn-secondary" type="submit">@UiText.Get("Apply filters")</button><a class="btn btn-ghost" asp-action="Index">@UiText.Get("Reset")</a></div>
+</form>
+
+<div class="table-shell">
+    <table class="data-table">
+        <thead><tr><th>Type</th><th>Code</th><th>English</th><th>Arabic</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+        @foreach (var value in Model.Page.Items)
+        {
+            <tr>
+                <td data-label="@UiText.Get("Type")">@value.Type @if (value.IsGlobal) { <span class="status status-muted">Global</span> }</td>
+                <td data-label="@UiText.Get("Code")"><code>@value.Code</code></td>
+                <td data-label="@UiText.Get("English")">@value.NameEn</td>
+                <td data-label="@UiText.Get("Arabic")" dir="rtl">@value.NameAr</td>
+                <td data-label="@UiText.Get("Description")">@value.Description</td>
+                <td data-label="@UiText.Get("Order")">@value.SortOrder</td>
+                <td data-label="@UiText.Get("Status")"><span class="status @(value.IsActive ? "status-live" : "status-muted")">@(value.IsActive ? "Active" : "Inactive")</span></td>
+                <td data-label="@UiText.Get("Actions")" class="table-actions">
+                    @if (value.IsGlobal && !User.IsInRole("PlatformAdmin"))
+                    {
+                        <span class="muted">Platform-managed</span>
+                    }
+                    else
+                    {
+                        <details class="action-menu">
+                            <summary aria-label="Actions"><span data-icon="more-horizontal" aria-hidden="true">···</span></summary>
+                            <div class="action-menu-panel">
+                                <a asp-action="Edit" asp-route-id="@value.Id">Edit</a>
+                                <form asp-action="Move" method="post" data-confirm data-confirm-title="Reorder lookup value" data-confirm-message="Move this lookup value one position? The order affects how values are presented and selected." data-confirm-label="Reorder value" data-confirm-tone="warning"><input type="hidden" name="id" value="@value.Id" /><input type="hidden" name="moveUp" value="true" />@Html.AntiForgeryToken()<button type="submit">Move up</button></form>
+                                <form asp-action="Move" method="post" data-confirm data-confirm-title="Reorder lookup value" data-confirm-message="Move this lookup value one position? The order affects how values are presented and selected." data-confirm-label="Reorder value" data-confirm-tone="warning"><input type="hidden" name="id" value="@value.Id" /><input type="hidden" name="moveUp" value="false" />@Html.AntiForgeryToken()<button type="submit">Move down</button></form>
+                                <form asp-action="SetActive" method="post" data-confirm data-confirm-title="@(value.IsActive ? "Deactivate lookup value" : "Activate lookup value")" data-confirm-message="@(value.IsActive ? "Deactivate this lookup value? Existing records that reference it will keep their data but it will no longer be selectable." : "Activate this lookup value so it can be selected again?")" data-confirm-label="@(value.IsActive ? "Deactivate" : "Activate")" data-confirm-tone="@(value.IsActive ? "danger" : "warning")"><input type="hidden" name="id" value="@value.Id" /><input type="hidden" name="isActive" value="@(!value.IsActive)" />@Html.AntiForgeryToken()<button class="@(value.IsActive ? "danger-link" : string.Empty)" type="submit">@(value.IsActive ? UiText.Get("Deactivate") : UiText.Get("Activate"))</button></form>
+                            </div>
+                        </details>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Page.Items.Count == 0)
+    {
+        <div class="empty-state"><span class="eyebrow">No values</span><h2>No lookup values match this filter.</h2><p class="muted">Create a tenant value from an active lookup type.</p><a class="btn btn-primary" asp-action="Create">Add value</a></div>
+    }
+</div>
+
+@if (Model.Page.TotalPages > 1)
+{
+    <nav class="pagination" aria-label="Lookup pages">
+        @for (var pageNumber = 1; pageNumber <= Model.Page.TotalPages; pageNumber++)
+        {
+            <a class="@(pageNumber == Model.Page.Page ? "active" : null)" aria-current="@(pageNumber == Model.Page.Page ? "page" : null)" asp-action="Index" asp-route-page="@pageNumber" asp-route-type="@Model.Page.Type" asp-route-search="@Model.Page.Search" asp-route-isActive="@Context.Request.Query["isActive"]" asp-route-sortBy="@Context.Request.Query["sortBy"]" asp-route-descending="@Context.Request.Query["descending"]">@pageNumber</a>
+        }
+    </nav>
+}

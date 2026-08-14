@@ -1,0 +1,85 @@
+@model RestaurantMenuPlatform.Application.DTOs.CartDto
+@{
+    Layout = null;
+    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var language = isArabic ? "ar" : "en";
+    var title = isArabic ? "سلتك" : "Your basket";
+    var itemsLabel = isArabic ? "أصناف" : "items";
+    var subtotalLabel = isArabic ? "المجموع الفرعي" : "Subtotal";
+    var totalLabel = isArabic ? "الإجمالي" : "Total";
+    var continueLabel = isArabic ? "متابعة التصفح" : "Continue browsing";
+    var checkoutLabel = isArabic ? "المتابعة إلى تأكيد الطلب" : "Continue to checkout";
+    var emptyLabel = isArabic ? "لم تضف أي أصناف بعد." : "Your basket is empty.";
+    var itemCount = Model.Lines.Sum(x => x.Quantity);
+    var queryContext = string.IsNullOrWhiteSpace(Model.QrCodeCode) ? string.Empty : $"&source=qr&code={Uri.EscapeDataString(Model.QrCodeCode)}";
+    var menuUrl = $"/menu/{Model.RestaurantSlug}/{Model.BranchSlug}?lang={language}{queryContext}";
+    var tableLabel = isArabic ? (Model.TableNameAr ?? Model.TableName) : Model.TableName;
+}
+<!doctype html>
+<html lang="@language" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@title</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body class="public-menu-body">
+    <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
+    <main class="public-menu public-order-page" id="main-content" tabindex="-1" data-public-cart-page>
+        <header class="public-product-topbar"><a class="text-link" href="@menuUrl"><span aria-hidden="true">←</span> @continueLabel</a><span class="public-basket-mini"><span aria-hidden="true">◎</span><strong>@title</strong><small>@itemCount @itemsLabel</small></span></header>
+        @if (TempData["Error"] is string error) { <div class="public-feedback feedback-error" role="alert">@error</div> }
+        @if (TempData["Success"] is string success) { <div class="public-feedback feedback-success" role="status">@success</div> }
+        <section class="public-order-card public-basket-card">
+            <div class="public-order-heading"><span class="eyebrow">@Model.BranchSlug</span><h1>@title</h1><p>@itemCount @itemsLabel @if (!string.IsNullOrWhiteSpace(tableLabel)) { <span>· @(isArabic ? "الطاولة" : "Table") @tableLabel</span> }</p></div>
+            @if (Model.Lines.Count == 0)
+            {
+                <div class="public-empty-basket"><span aria-hidden="true">◎</span><h2>@emptyLabel</h2><a class="public-action" href="@menuUrl">@continueLabel</a></div>
+            }
+            else
+            {
+                <div class="public-cart-lines">
+                    @foreach (var line in Model.Lines)
+                    {
+                        var editUrl = $"/menu/{Model.RestaurantSlug}/{Model.BranchSlug}/product/{line.MenuItemId}?lang={language}{queryContext}&editKey={Uri.EscapeDataString(line.Key)}";
+                        <article class="public-cart-line" data-cart-line data-line-key="@line.Key">
+                            <div class="public-cart-line-image" data-image-frame>
+                                @if (!string.IsNullOrWhiteSpace(line.ImageUrl)) { <img src="@line.ImageUrl" alt="@line.ProductName" loading="lazy" data-public-image data-fallback-label="@(isArabic ? "صورة المنتج" : "Product image")" /> }
+                                else { <span aria-hidden="true">◎</span> }
+                            </div>
+                            <div class="public-cart-line-copy">
+                                <div class="public-cart-line-heading"><div><h2>@line.ProductName</h2><span class="public-cart-unit">@line.UnitPrice.ToString("0.00") @line.Currency / @(isArabic ? "قطعة" : "unit")</span></div><strong data-line-total>@line.LineTotal.ToString("0.00") @line.Currency</strong></div>
+                                @if (line.ModifierNames.Count > 0)
+                                {
+                                    <p class="public-cart-modifiers"><span>@(isArabic ? "الاختيارات:" : "Selected:")</span> @string.Join(isArabic ? "، " : ", ", line.ModifierNames)</p>
+                                }
+                                <div class="public-cart-line-actions">
+                                    <form action="/menu/@Model.RestaurantSlug/@Model.BranchSlug/cart/update" method="post" data-public-cart-form data-cart-mutation="update" class="public-cart-quantity-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="key" value="@line.Key" />
+                                        <button type="button" data-cart-step="decrease" aria-label="@(isArabic ? "تقليل الكمية" : "Decrease quantity")">−</button>
+                                        <input type="number" name="quantity" value="@line.Quantity" min="0" max="20" aria-label="@(isArabic ? "الكمية" : "Quantity")" />
+                                        <button type="button" data-cart-step="increase" aria-label="@(isArabic ? "زيادة الكمية" : "Increase quantity")">+</button>
+                                        <button class="public-text-action" type="submit">@(isArabic ? "تحديث" : "Update")</button>
+                                    </form>
+                                    <a class="public-text-action" href="@editUrl">@(isArabic ? "تعديل الاختيارات" : "Edit choices")</a>
+                                    <form action="/menu/@Model.RestaurantSlug/@Model.BranchSlug/cart/remove" method="post" data-public-cart-form data-cart-mutation="remove">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="key" value="@line.Key" />
+                                        <button class="public-text-action public-danger-action" type="submit">@(isArabic ? "حذف" : "Remove")</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+                <div class="public-totals">
+                    <div><span>@subtotalLabel</span><strong>@Model.Total.ToString("0.00") @Model.Currency</strong></div>
+                    <div class="public-grand-total"><span>@totalLabel</span><strong>@Model.Total.ToString("0.00") @Model.Currency</strong><small>@(isArabic ? "لا توجد رسوم إضافية مطبقة حالياً" : "No additional charges are applied")</small></div>
+                </div>
+                <a class="public-action public-action-primary public-checkout-link" href="/menu/@Model.RestaurantSlug/@Model.BranchSlug/checkout?lang=@language@queryContext">@checkoutLabel <span aria-hidden="true">→</span></a>
+            }
+        </section>
+    </main>
+    <script src="~/js/site.js"></script>
+</body>
+</html>

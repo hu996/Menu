@@ -1,0 +1,16 @@
+@model RestaurantMenuPlatform.Web.Models.PlanManagementIndexViewModel
+@{ ViewData["Title"] = "Platform plans"; }
+<div class="page-header page-header-actions"><div><span class="eyebrow">Platform administration</span><h1>Plans &amp; entitlements</h1><p class="muted">Manage database-backed commercial plans, limits, features, and availability.</p></div><a class="btn btn-primary" asp-action="Create">Create plan</a></div>
+<section class="surface"><div class="data-table" data-columns="6"><div class="table-row table-heading"><span>Plan</span><span>Price</span><span>Limits</span><span>Features</span><span>Status</span><span>Actions</span></div>
+@if (Model.Plans.Count == 0)
+{
+    <div class="empty-state"><h2>No plans configured.</h2><p class="muted">Create the first plan before onboarding tenants.</p></div>
+}
+else
+{
+    foreach (var plan in Model.Plans)
+    {
+        <div class="table-row"><span><strong>@plan.Name</strong></span><span>@plan.MonthlyPrice.ToString("0.00") @plan.Currency</span><span>@(plan.MaxBranches > 0 ? plan.MaxBranches : "∞") branches · @(plan.MaxMenuItems > 0 ? plan.MaxMenuItems : "∞") items · @(plan.MaxUsers > 0 ? plan.MaxUsers : "∞") users</span><span>@string.Join(", ", plan.Features.Where(x => x.Enabled).Select(x => x.FeatureKey))</span><span class="status @(plan.IsActive ? "status-live" : "status-muted")">@(plan.IsActive ? UiText.Get("Active") : UiText.Get("Inactive"))</span><span class="action-row"><a class="text-link" asp-action="Edit" asp-route-id="@plan.Id">@UiText.Get("Edit")</a><form asp-action="SetActive" method="post" class="inline-form" data-confirm data-confirm-title="@(plan.IsActive ? "Deactivate plan" : "Activate plan")" data-confirm-message="@(plan.IsActive ? $"Deactivate the {plan.Name} plan? New subscriptions will no longer be able to select it." : $"Activate the {plan.Name} plan so it can be selected for subscriptions?")" data-confirm-label="@(plan.IsActive ? "Deactivate" : "Activate")" data-confirm-tone="@(plan.IsActive ? "danger" : "warning")"><input type="hidden" name="id" value="@plan.Id" /><input type="hidden" name="isActive" value="@(!plan.IsActive)" />@Html.AntiForgeryToken()<button class="text-link @(plan.IsActive ? "danger-link" : string.Empty)" type="submit">@(plan.IsActive ? UiText.Get("Deactivate") : UiText.Get("Activate"))</button></form></span></div>
+    }
+}
+</div></section>

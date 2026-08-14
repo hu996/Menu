@@ -1,0 +1,24 @@
+@model RestaurantMenuPlatform.Application.DTOs.OnboardingProgressDto
+@{ var setupTenantSlug = User.FindFirst("tenant_slug")?.Value ?? Context.Request.RouteValues["tenantSlug"]?.ToString(); var setupTenantPath = string.IsNullOrWhiteSpace(setupTenantSlug) ? string.Empty : $"/r/{Uri.EscapeDataString(setupTenantSlug)}"; }
+@if (Model.IsComplete)
+{
+    <section class="surface setup-progress operational-health" aria-labelledby="setup-progress-title">
+        <div class="section-heading"><div><span class="eyebrow">@UiText.Get("Restaurant health")</span><h2 id="setup-progress-title">@UiText.Get("Ready for daily operations")</h2><p class="muted">@UiText.Get("Setup is complete. The workspace is ready for ongoing service management.")</p></div><span class="health-check" aria-hidden="true">✓</span></div>
+        <div class="operational-checks"><span>✓ @UiText.Get("Restaurant") @UiText.Get("Complete")</span><span>✓ @UiText.Get("Menus") @UiText.Get("Published")</span><span>✓ QR @UiText.Get("Active")</span></div>
+    </section>
+}
+else
+{
+    <section class="surface setup-progress setup-progress-component" aria-labelledby="setup-progress-title">
+        <div class="section-heading"><div><span class="eyebrow">@UiText.Get("Restaurant setup")</span><h2 id="setup-progress-title">@Model.CompletedSteps/@Model.TotalSteps</h2><p class="muted">@UiText.Get("Continue from the next saved business step. Progress reflects database state.")</p></div><span class="setup-progress-ring" aria-label="@Model.CompletedSteps/@Model.TotalSteps">@Model.CompletedSteps/@Model.TotalSteps</span></div>
+        <nav class="setup-step-list" aria-label="@UiText.Get("Restaurant setup")">
+            <a class="setup-step @(Model.RestaurantConfigured ? "complete" : "current")" href="@(setupTenantPath)/Restaurant/Index"><span class="setup-step-number">01</span><span><strong>@UiText.Get("Restaurant")</strong><small>@(Model.RestaurantConfigured ? UiText.Get("Complete") : UiText.Get("Configure identity"))</small></span></a>
+            <a class="setup-step @(Model.FirstBranchCreated ? "complete" : "current")" href="@(setupTenantPath)/Branches/Index"><span class="setup-step-number">02</span><span><strong>@UiText.Get("Branches")</strong><small>@(Model.FirstBranchCreated ? UiText.Get("Complete") : UiText.Get("Create your first branch"))</small></span></a>
+            <a class="setup-step @(Model.MenuCreated ? "complete" : "current")" href="@(setupTenantPath)/Menus/Index"><span class="setup-step-number">03</span><span><strong>@UiText.Get("Menus")</strong><small>@(Model.MenuCreated ? UiText.Get("Complete") : UiText.Get("Create a menu"))</small></span></a>
+            <a class="setup-step @(Model.CategoriesCreated ? "complete" : "current")" href="@(setupTenantPath)/Menus/Index"><span class="setup-step-number">04</span><span><strong>@UiText.Get("Categories")</strong><small>@(Model.CategoriesCreated ? UiText.Get("Complete") : UiText.Get("Add a category"))</small></span></a>
+            <a class="setup-step @(Model.ProductsCreated ? "complete" : "current")" href="@(setupTenantPath)/Products/Index"><span class="setup-step-number">05</span><span><strong>@UiText.Get("Products")</strong><small>@(Model.ProductsCreated ? UiText.Get("Complete") : UiText.Get("Add a product"))</small></span></a>
+            <a class="setup-step @(Model.MenuPublished ? "complete" : "current")" href="@(setupTenantPath)/Menus/Index"><span class="setup-step-number">06</span><span><strong>@UiText.Get("Preview") &amp; @UiText.Get("Publish")</strong><small>@(Model.MenuPublished ? UiText.Get("Published") : UiText.Get("Publish when ready"))</small></span></a>
+            <a class="setup-step @(Model.QrCreated ? "complete" : "current")" href="@(setupTenantPath)/QrCodes/Index"><span class="setup-step-number">07</span><span><strong>QR</strong><small>@(Model.QrCreated ? UiText.Get("Ready") : UiText.Get("Create a guest entry point"))</small></span></a>
+        </nav>
+    </section>
+}

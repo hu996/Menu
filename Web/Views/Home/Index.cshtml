@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Restaurant Menu Platform";
+}
+
+<div class="hero">
+    <span class="eyebrow">Restaurant SaaS</span>
+    <h1>Digital menus, branches and QR codes — built for multi-location restaurants.</h1>
+    <p>
+        Clean Architecture starter built with ASP.NET Core MVC, SQL Server and EF Core.
+        Tenant isolation is part of the foundation.
+    </p>
+    <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Open Demo Dashboard</a>
+    <a class="btn btn-secondary" asp-controller="Restaurant" asp-action="Create">Create a restaurant</a>
+</div>
+
+<div class="grid">
+    <div class="card"><strong>Multi-Tenant</strong><span>Tenant-aware data access with EF Core query filters.</span></div>
+    <div class="card"><strong>Global Menu</strong><span>One menu can be shared across multiple branches.</span></div>
+    <div class="card"><strong>QR Ready</strong><span>Stable QR records are separated from menu content.</span></div>
+    <div class="card"><strong>Subscriptions</strong><span>Plans and subscription entities are included from day one.</span></div>
+</div>

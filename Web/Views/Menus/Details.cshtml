@@ -1,0 +1,70 @@
+@model RestaurantMenuPlatform.Application.DTOs.MenuDetailsDto
+@{
+    ViewData["Title"] = Model.Name;
+    var tenantSlug = User.FindFirst("tenant_slug")?.Value ?? "restaurant";
+    var canEdit = User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.IsInRole("MenuEditor") || User.IsInRole("PlatformAdmin");
+    var productCount = Model.Categories.Sum(category => category.Items.Count);
+}
+
+<nav class="breadcrumbs" aria-label="@UiText.Get("Breadcrumbs")">
+    <a href="/r/@tenantSlug/Dashboard/Index">@UiText.Get("Restaurant")</a><span aria-hidden="true">/</span>
+    <a asp-action="Index">@UiText.Get("Menus")</a><span aria-hidden="true">/</span><strong>@UiText.Business(Model.Name, Model.Name, Model.NameAr)</strong>
+</nav>
+
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">@UiText.Get("Menu workspace") &middot; @Model.Status</span><h1>@UiText.Business(Model.Name, Model.Name, Model.NameAr)</h1><p class="muted">/@Model.Slug &middot; @(Model.IsGlobal ? UiText.Get("All active branches") : UiText.Get("Selected branches"))</p></div>
+    @if (canEdit)
+    {
+        <div class="action-row"><a class="btn btn-secondary" asp-action="Edit" asp-route-id="@Model.Id">@UiText.Get("Edit menu")</a><a class="btn btn-primary" asp-action="CreateCategory" asp-route-menuId="@Model.Id">@UiText.Get("Add category")</a><form asp-action="SetStatus" method="post" class="inline-form" data-confirm data-confirm-title="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published ? "Move menu to draft" : "Publish menu")" data-confirm-message="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published ? "Move this menu back to draft? Guests will no longer see it as the published menu." : "Publish this menu? Guests will be able to view the current menu content immediately.")" data-confirm-label="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published ? "Move to draft" : "Publish menu")" data-confirm-tone="warning"><input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="status" value="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published ? "Draft" : "Published")" />@Html.AntiForgeryToken()<button class="btn @(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published ? "btn-warning" : "btn-primary")" type="submit">@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published ? UiText.Get("Move to draft") : UiText.Get("Publish menu"))</button></form></div>
+    }
+</div>
+
+
+<nav class="workspace-subnav" aria-label="@UiText.Get("Menu workspace sections")">
+    <a href="#menu-overview">@UiText.Get("Overview")</a>
+    <a href="#menu-categories">@UiText.Get("Categories")</a>
+    <a asp-controller="Products" asp-action="Index" asp-route-menuId="@Model.Id">@UiText.Get("Products")</a>
+    @if (Model.AssignedBranches?.FirstOrDefault() is { } previewBranch) { <a asp-action="Preview" asp-route-id="@Model.Id" asp-route-branchId="@previewBranch.Id">@UiText.Get("Preview")</a> }
+    <a asp-controller="Audit" asp-action="Index">@UiText.Get("History")</a>
+</nav>
+
+@if (canEdit)
+{
+    <form asp-action="SetStatus" method="post" class="surface status-control" data-confirm data-confirm-title="Save publication state" data-confirm-message="Save this menu publication state? Publishing makes the menu visible to guests; draft or archived states remove it from the published guest experience." data-confirm-label="Save publication state" data-confirm-tone="warning">
+        <input type="hidden" name="id" value="@Model.Id" />@Html.AntiForgeryToken()
+        <label for="menuStatus">@UiText.Get("Publication state")</label>
+        <select id="menuStatus" name="status"><option value="Draft" selected="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Draft)">Draft</option><option value="Published" selected="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Published)">Published</option><option value="Archived" selected="@(Model.Status == RestaurantMenuPlatform.Domain.Enums.MenuStatus.Archived)">Archived</option></select>
+        <button class="btn btn-primary" type="submit">@UiText.Get("Save publication state")</button>
+    </form>
+}
+
+<section id="menu-overview" class="detail-grid workspace-summary">
+    <div class="detail-card"><span class="eyebrow">@UiText.Get("Status")</span><strong><span class="status" data-status="@Model.Status">@UiText.Get(Model.Status.ToString())</span></strong></div>
+    <div class="detail-card"><span class="eyebrow">@UiText.Get("Branches")</span><strong>@(Model.AssignedBranches?.Count ?? 0)</strong></div>
+    <div class="detail-card"><span class="eyebrow">@UiText.Get("Categories")</span><strong>@Model.Categories.Count</strong></div>
+    <div class="detail-card"><span class="eyebrow">@UiText.Get("Products")</span><strong>@productCount</strong></div>
+    <div class="detail-card"><span class="eyebrow">@UiText.Get("Type")</span><strong>@(Model.MenuTypeCode ?? UiText.Get("Not set"))</strong></div>
+    <div class="detail-card detail-card-wide"><span class="eyebrow">@UiText.Get("Description")</span><strong>@(Model.Description ?? UiText.Get("Not provided"))</strong></div>
+</section>
+
+<section class="surface assignment-summary"><div class="section-heading"><div><span class="eyebrow">@UiText.Get("Branch assignment")</span><h2>@UiText.Get("Which branches use this menu?")</h2></div><span class="muted">@(Model.AssignedBranches?.Count ?? 0) @UiText.Get("branch(es)")</span></div>@if (Model.AssignedBranches is null || Model.AssignedBranches.Count == 0) { <p class="muted">@UiText.Get("No active branch is assigned.")</p> } else { <div class="assignment-list">@foreach (var branch in Model.AssignedBranches) { <span class="status @(branch.IsActive ? "status-live" : "status-muted")">@UiText.Business(branch.Name, branch.Name, null) &middot; /@branch.Slug</span><a class="text-link" asp-action="Preview" asp-route-id="@Model.Id" asp-route-branchId="@branch.Id" asp-route-lang="en">@UiText.Get("Preview")</a> }</div> }</section>
+
+<section id="menu-categories" class="menu-editor" aria-label="@UiText.Get("Categories")">
+@if (Model.Categories.Count == 0)
+{
+    <div class="empty-state"><h2>@UiText.Get("Add your first category.")</h2><p class="muted">@UiText.Get("Categories make a long menu easy to browse.")</p><a class="btn btn-primary" asp-action="CreateCategory" asp-route-menuId="@Model.Id">@UiText.Get("Create category")</a></div>
+}
+else
+{
+    @foreach (var category in Model.Categories.OrderBy(x => x.ParentCategoryId.HasValue ? 1 : 0).ThenBy(x => x.ParentCategoryId).ThenBy(x => x.SortOrder).ThenBy(x => x.Name))
+    {
+        var siblings = Model.Categories.Where(x => x.ParentCategoryId == category.ParentCategoryId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToList();
+        var position = siblings.FindIndex(x => x.Id == category.Id);
+        var parent = category.ParentCategoryId.HasValue ? Model.Categories.FirstOrDefault(x => x.Id == category.ParentCategoryId.Value)?.Name : null;
+        <section class="editor-section @(category.ParentCategoryId.HasValue ? "subcategory-section" : "")">
+            <div class="section-heading"><div><span class="eyebrow">@(category.ParentCategoryId.HasValue ? UiText.Get("Subcategory") : UiText.Get("Category")) &middot; @category.SortOrder</span><h2>@UiText.Business(category.Name, category.Name, category.NameAr)</h2>@if (parent is not null) { <p class="muted">@UiText.Get("Under") @parent</p> }</div>@if (canEdit) { <div class="action-row"><a class="text-link" asp-action="EditCategory" asp-route-id="@category.Id">@UiText.Get("Edit category")</a>@if (position > 0) { <form asp-action="MoveCategory" method="post" class="inline-form" data-confirm data-confirm-title="Reorder category" data-confirm-message="Move this category one position? The category order changes how guests scan the menu." data-confirm-label="Reorder category" data-confirm-tone="warning"><input type="hidden" name="id" value="@category.Id" /><input type="hidden" name="menuId" value="@Model.Id" /><input type="hidden" name="moveUp" value="true" />@Html.AntiForgeryToken()<button class="text-link" type="submit">@UiText.Get("Move up")</button></form> }@if (position >= 0 && position < siblings.Count - 1) { <form asp-action="MoveCategory" method="post" class="inline-form" data-confirm data-confirm-title="Reorder category" data-confirm-message="Move this category one position? The category order changes how guests scan the menu." data-confirm-label="Reorder category" data-confirm-tone="warning"><input type="hidden" name="id" value="@category.Id" /><input type="hidden" name="menuId" value="@Model.Id" /><input type="hidden" name="moveUp" value="false" />@Html.AntiForgeryToken()<button class="text-link" type="submit">@UiText.Get("Move down")</button></form> }<a class="text-link" asp-action="CreateItem" asp-route-categoryId="@category.Id">@UiText.Get("Add product")</a></div> }</div>
+            @if (category.Items.Count == 0) { <p class="muted">@UiText.Get("No items in this category yet.")</p> } else { <div class="item-list">@foreach (var item in category.Items.OrderBy(x => x.SortOrder).ThenBy(x => x.Name)) { var itemPosition = category.Items.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToList().FindIndex(x => x.Id == item.Id); <article class="item-row">@if (!string.IsNullOrWhiteSpace(item.ImageUrl)) { <img src="@item.ImageUrl" alt="@item.Name" class="item-thumb" /> } else { <div class="item-thumb item-thumb-placeholder" aria-hidden="true"><span data-icon="image"></span></div> }<div class="item-copy"><strong>@UiText.Business(item.Name, item.Name, item.NameAr)</strong><span>@UiText.Business(item.Description, item.Description, item.DescriptionAr)</span><small>@string.Join(" · ", item.Ingredients)@(item.Allergens.Count > 0 ? " · " + UiText.Get("Allergens") + ": " + string.Join(", ", item.Allergens) : "")</small></div><div class="item-meta"><strong>@item.Price.ToString("0.00") @item.Currency</strong><span class="status @(item.IsAvailable ? "status-live" : "status-muted")">@(item.IsAvailable ? UiText.Get("Available") : UiText.Get("Unavailable"))</span><a class="text-link" asp-action="EditItem" asp-route-id="@item.Id">@UiText.Get("Open editor")</a>@if (canEdit && itemPosition > 0) { <form asp-action="MoveItem" method="post" class="inline-form" data-confirm data-confirm-title="Reorder menu item" data-confirm-message="Move this item one position? The item order changes how guests scan the menu." data-confirm-label="Reorder item" data-confirm-tone="warning"><input type="hidden" name="id" value="@item.Id" /><input type="hidden" name="menuId" value="@Model.Id" /><input type="hidden" name="moveUp" value="true" />@Html.AntiForgeryToken()<button class="text-link" type="submit">↑</button></form> }@if (canEdit && itemPosition < category.Items.Count - 1) { <form asp-action="MoveItem" method="post" class="inline-form" data-confirm data-confirm-title="Reorder menu item" data-confirm-message="Move this item one position? The item order changes how guests scan the menu." data-confirm-label="Reorder item" data-confirm-tone="warning"><input type="hidden" name="id" value="@item.Id" /><input type="hidden" name="menuId" value="@Model.Id" /><input type="hidden" name="moveUp" value="false" />@Html.AntiForgeryToken()<button class="text-link" type="submit">↓</button></form> }</div></article> }</div> }
+        </section>
+    }
+}
+</section>
