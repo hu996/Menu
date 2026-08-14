@@ -6,6 +6,8 @@ public enum MembershipRole
     TenantOwner,
     TenantAdmin,
     BranchManager,
+    Kitchen,
+    Waiter,
     MenuEditor,
     Viewer
 }

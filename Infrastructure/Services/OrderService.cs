@@ -359,8 +359,11 @@ public sealed class OrderService : IOrderService
     private static bool IsValidTransition(OrderStatus from, OrderStatus to) =>
         (from, to) is (OrderStatus.Pending, OrderStatus.Accepted) or
         (OrderStatus.Pending, OrderStatus.Rejected) or
+        (OrderStatus.Pending, OrderStatus.Cancelled) or
         (OrderStatus.Accepted, OrderStatus.Preparing) or
+        (OrderStatus.Accepted, OrderStatus.Cancelled) or
         (OrderStatus.Preparing, OrderStatus.Ready) or
+        (OrderStatus.Preparing, OrderStatus.Cancelled) or
         (OrderStatus.Ready, OrderStatus.Completed);
 
     private static PublicOrderItemDto ToPublicItem(MenuItem item, BranchMenuItemOverride? overrideEntity, string? language) =>
@@ -421,7 +424,7 @@ public sealed class OrderService : IOrderService
         new(order.Id, order.OrderNumber, order.Branch?.Tenant?.Name ?? string.Empty, order.Branch?.Name ?? string.Empty, order.Total, order.Currency, order.Status.ToString(), order.Items.Select(ToCartLine).ToList(), order.Table?.Name, order.Table?.NameAr, order.QrCode?.Code);
 
     private static StaffOrderDto ToStaff(Order order) =>
-        new(order.Id, order.OrderNumber, order.CustomerName, order.CustomerPhone, order.Total, order.Currency, order.Status.ToString(), order.Branch?.Name ?? string.Empty, order.CreatedAtUtc, order.Items.Select(ToCartLine).ToList(), order.TableId, order.Table?.Name, order.Table?.NameAr, order.QrCodeId, order.QrCode?.Code);
+        new(order.Id, order.OrderNumber, order.CustomerName, order.CustomerPhone, order.Total, order.Currency, order.Status.ToString(), order.Branch?.Name ?? string.Empty, order.CreatedAtUtc, order.Items.Select(ToCartLine).ToList(), order.TableId, order.Table?.Name, order.Table?.NameAr, order.QrCodeId, order.QrCode?.Code, order.Notes);
 
     private static CartLineDto ToCartLine(OrderItem item) =>
         new($"{item.MenuItemId:N}:{string.Join(',', item.Modifiers.Select(x => x.ModifierOptionId.ToString("N")).OrderBy(x => x))}", item.MenuItemId, item.ProductName, item.Quantity, item.UnitPrice,

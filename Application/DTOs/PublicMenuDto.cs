@@ -131,7 +131,8 @@ public sealed record StaffOrderDto(
     string? TableName = null,
     string? TableNameAr = null,
     Guid? QrCodeId = null,
-    string? QrCodeCode = null);
+    string? QrCodeCode = null,
+    string? Notes = null);
 
 public sealed record PublicMenuAnalyticsContext(
     Guid BranchId,

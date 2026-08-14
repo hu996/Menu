@@ -51,6 +51,7 @@ public static class PermissionCatalog
     public const string OrdersReady = "Orders.Ready";
     public const string OrdersComplete = "Orders.Complete";
     public const string OrdersReject = "Orders.Reject";
+    public const string OrdersCancel = "Orders.Cancel";
 
     public static IReadOnlyList<Definition> Definitions { get; } =
     [
@@ -66,7 +67,7 @@ public static class PermissionCatalog
         new(QrView, "QR", "View", "QR", 90), new(QrCreate, "QR", "Create", "QR", 91), new(QrEdit, "QR", "Edit", "QR", 92), new(QrDeactivate, "QR", "Deactivate", "QR", 93),
         new(UserView, "User", "View", "User", 100), new(UserCreate, "User", "Create", "User", 101), new(UserEdit, "User", "Edit", "User", 102), new(UserDeactivate, "User", "Deactivate", "User", 103), new(UserAssignPermissions, "User", "Assign Permissions", "User", 104),
         new(AuditView, "Audit", "View", "Audit", 110), new(AnalyticsView, "Analytics", "View", "Analytics", 120), new(SubscriptionView, "Subscription", "View", "Subscription", 130), new(SubscriptionManage, "Subscription", "Manage", "Subscription", 131),
-        new(OrdersView, "Orders", "View", "\u0639\u0631\u0636 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 140), new(OrdersAccept, "Orders", "Accept", "\u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 141), new(OrdersPrepare, "Orders", "Prepare", "\u062a\u062d\u0636\u064a\u0631 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 142), new(OrdersReady, "Orders", "Ready", "\u062c\u0627\u0647\u0632 \u0644\u0644\u062a\u0633\u0644\u064a\u0645", 143), new(OrdersComplete, "Orders", "Complete", "\u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 144), new(OrdersReject, "Orders", "Reject", "\u0631\u0641\u0636 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 145)
+        new(OrdersView, "Orders", "View", "\u0639\u0631\u0636 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 140), new(OrdersAccept, "Orders", "Accept", "\u0642\u0628\u0648\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 141), new(OrdersPrepare, "Orders", "Prepare", "\u062a\u062d\u0636\u064a\u0631 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 142), new(OrdersReady, "Orders", "Ready", "\u062c\u0627\u0647\u0632 \u0644\u0644\u062a\u0633\u0644\u064a\u0645", 143), new(OrdersComplete, "Orders", "Complete", "\u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 144), new(OrdersReject, "Orders", "Reject", "\u0631\u0641\u0636 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 145), new(OrdersCancel, "Orders", "Cancel", "\u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0637\u0644\u0628\u0627\u062a", 146)
     ];
 
     public static IReadOnlyCollection<string> AllCodes => Definitions.Select(x => x.Code).ToArray();
@@ -76,6 +77,8 @@ public static class PermissionCatalog
         MembershipRole.PlatformAdmin or MembershipRole.TenantOwner or MembershipRole.TenantAdmin => AllCodes,
         MembershipRole.MenuEditor => Definitions.Where(x => x.GroupCode is "Restaurant" or "Menu" or "Category" or "Product" or "Ingredient" or "Allergen" or "Modifier" or "Pricing").Select(x => x.Code).ToArray(),
         MembershipRole.BranchManager => [RestaurantView, BranchView, MenuView, CategoryView, ProductView, ProductEdit, OrdersView, OrdersAccept, OrdersPrepare, OrdersReady, OrdersComplete, OrdersReject],
+        MembershipRole.Kitchen => [RestaurantView, BranchView, MenuView, ProductView, OrdersView, OrdersAccept, OrdersPrepare, OrdersReady, OrdersReject, OrdersCancel],
+        MembershipRole.Waiter => [RestaurantView, BranchView, MenuView, OrdersView, OrdersAccept, OrdersComplete, OrdersReject, OrdersCancel],
         _ => [RestaurantView, BranchView, MenuView, CategoryView, ProductView]
     };
 

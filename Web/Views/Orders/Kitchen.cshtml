@@ -1,0 +1,40 @@
+@model IReadOnlyList<RestaurantMenuPlatform.Application.DTOs.StaffOrderDto>
+@using RestaurantMenuPlatform.Domain.Enums
+@{
+    ViewData["Title"] = "Kitchen display";
+    var tenantSlug = Context.Request.RouteValues["tenantSlug"]?.ToString() ?? string.Empty;
+    var columns = new[] { OrderStatus.Pending, OrderStatus.Accepted, OrderStatus.Preparing, OrderStatus.Ready };
+}
+<div class="page-header page-header-actions">
+    <div><span class="eyebrow">Live operations</span><h1>Kitchen display</h1><p class="muted">Orders refresh automatically every 15 seconds. Use the status buttons to move each ticket through service.</p></div>
+    <div class="action-row"><a class="btn btn-secondary" href="/r/@tenantSlug/Orders/Index">All orders</a><button class="btn btn-primary" type="button" onclick="window.location.reload()">Refresh now</button></div>
+</div>
+<div class="kitchen-board" data-kitchen-board>
+@foreach (var status in columns)
+{
+    var orders = Model.Where(x => string.Equals(x.Status, status.ToString(), StringComparison.OrdinalIgnoreCase)).ToList();
+    <section class="kitchen-column" data-status="@status" aria-labelledby="kitchen-@status">
+        <div class="kitchen-column-heading"><div><span class="eyebrow">Queue</span><h2 id="kitchen-@status">@UiText.Get(status.ToString())</h2></div><strong class="kitchen-count">@orders.Count</strong></div>
+        @if (orders.Count == 0)
+        {
+            <div class="kitchen-empty">No tickets in this stage.</div>
+        }
+        else
+        {
+            foreach (var order in orders)
+            {
+                var next = status switch { OrderStatus.Pending => OrderStatus.Accepted, OrderStatus.Accepted => OrderStatus.Preparing, OrderStatus.Preparing => OrderStatus.Ready, OrderStatus.Ready => OrderStatus.Completed, _ => OrderStatus.Pending };
+                var nextPermission = next switch { OrderStatus.Accepted => "Orders.Accept", OrderStatus.Preparing => "Orders.Prepare", OrderStatus.Ready => "Orders.Ready", OrderStatus.Completed => "Orders.Complete", _ => string.Empty };
+                <article class="kitchen-ticket">
+                    <header><div><strong>@order.OrderNumber</strong><span>@order.CreatedAtUtc.ToLocalTime().ToString("HH:mm")</span></div><strong class="kitchen-table">@(order.TableName is null ? "No table" : $"Table {order.TableName}")</strong></header>
+                    <div class="kitchen-ticket-guest">@order.CustomerName · @order.CustomerPhone</div>
+                    <ul>@foreach (var item in order.Items) { <li><strong>@item.Quantity ×</strong> @item.ProductName @if (item.ModifierNames.Count > 0) { <small>@string.Join(", ", item.ModifierNames)</small> }</li> }</ul>
+                    @if (!string.IsNullOrWhiteSpace(order.Notes)) { <p class="kitchen-ticket-note"><strong>Note:</strong> @order.Notes</p> }
+                    <div class="action-row"><a class="text-link" href="/r/@tenantSlug/Orders/Details/@order.Id">Details</a>@if (!string.IsNullOrWhiteSpace(nextPermission) && (User.IsInRole("TenantOwner") || User.IsInRole("TenantAdmin") || User.HasClaim("permission", nextPermission))) { <form action="/r/@tenantSlug/Orders/Transition" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@order.Id" /><input type="hidden" name="status" value="@next" /><button class="btn btn-primary" type="submit">Move to @UiText.Get(next.ToString())</button></form> }</div>
+                </article>
+            }
+        }
+    </section>
+}
+</div>
+<script>window.setTimeout(function () { window.location.reload(); }, 15000);</script>

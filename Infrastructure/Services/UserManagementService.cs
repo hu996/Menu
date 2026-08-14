@@ -123,8 +123,8 @@ public sealed class UserManagementService : IUserManagementService
         PasswordService.ValidateStrength(input.Password);
         if (!Enum.IsDefined(input.Role) || input.Role == MembershipRole.PlatformAdmin)
             throw new ArgumentException("The selected role is not available for tenant users.");
-        if (input.Role == MembershipRole.BranchManager && !input.BranchId.HasValue)
-            throw new ArgumentException("Branch managers must be assigned to a branch.");
+        if (input.Role is MembershipRole.BranchManager or MembershipRole.Kitchen or MembershipRole.Waiter && !input.BranchId.HasValue)
+            throw new ArgumentException("Branch-scoped staff must be assigned to a branch.");
         if (input.Role is MembershipRole.PlatformAdmin or MembershipRole.TenantOwner or MembershipRole.TenantAdmin && input.BranchId.HasValue)
             throw new ArgumentException("Tenant-wide administration roles cannot be limited to a branch.");
         if (_currentUser.Role == MembershipRole.TenantAdmin &&
@@ -295,8 +295,8 @@ public sealed class UserManagementService : IUserManagementService
 
     private static void ValidateBranchScope(MembershipRole role, Guid? branchId)
     {
-        if (role == MembershipRole.BranchManager && !branchId.HasValue)
-            throw new ArgumentException("Branch managers must be assigned to a branch.");
+        if (role is MembershipRole.BranchManager or MembershipRole.Kitchen or MembershipRole.Waiter && !branchId.HasValue)
+            throw new ArgumentException("Branch-scoped staff must be assigned to a branch.");
         if (role is MembershipRole.TenantOwner or MembershipRole.TenantAdmin && branchId.HasValue)
             throw new ArgumentException("Tenant-wide administration roles cannot be limited to a branch.");
     }

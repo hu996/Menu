@@ -472,6 +472,8 @@ public static class UiText
             ["TenantOwner"] = "مالك المستأجر",
             ["TenantAdmin"] = "مسؤول المستأجر",
             ["BranchManager"] = "مدير فرع",
+            ["Kitchen"] = "المطبخ",
+            ["Waiter"] = "النادل",
             ["MenuEditor"] = "محرر القوائم",
             ["PlatformAdmin"] = "مسؤول المنصة",
             ["Trial"] = "تجريبي",

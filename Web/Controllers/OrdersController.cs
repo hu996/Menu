@@ -78,6 +78,7 @@ public sealed class OrdersController : Controller
             OrderStatus.Ready => "Orders.Ready",
             OrderStatus.Completed => "Orders.Complete",
             OrderStatus.Rejected => "Orders.Reject",
+            OrderStatus.Cancelled => "Orders.Cancel",
             _ => string.Empty
         };
         if (string.IsNullOrWhiteSpace(permission) || !User.HasClaim("permission", permission))
@@ -98,6 +99,24 @@ public sealed class OrdersController : Controller
         return string.IsNullOrWhiteSpace(tenantSlug)
             ? RedirectToAction(nameof(Details), new { id })
             : Redirect($"/r/{Uri.EscapeDataString(tenantSlug)}/Orders/Details/{id}");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Kitchen(CancellationToken cancellationToken)
+    {
+        var branchScope = GetBranchScope();
+        var statuses = new[] { OrderStatus.Pending, OrderStatus.Accepted, OrderStatus.Preparing, OrderStatus.Ready };
+        var queue = new List<RestaurantMenuPlatform.Application.DTOs.StaffOrderDto>();
+        foreach (var status in statuses)
+            queue.AddRange(await _orderService.GetStaffOrdersAsync(branchScope, status: status.ToString(), cancellationToken: cancellationToken));
+        return View(queue.OrderBy(x => x.Status).ThenBy(x => x.CreatedAtUtc).ToList());
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Print(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await _orderService.GetStaffOrderAsync(id, GetBranchScope(), cancellationToken);
+        return order is null ? NotFound() : View(order);
     }
 
     private Guid? GetBranchScope() => Guid.TryParse(User.FindFirstValue("branch_id"), out var id) ? id : null;
