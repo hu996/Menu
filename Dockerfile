@@ -4,7 +4,7 @@ COPY . .
 RUN dotnet restore RestaurantMenuPlatform.sln
 RUN dotnet publish Web/Web.csproj -c Release -o /app/publish --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 ENV ASPNETCORE_ENVIRONMENT=Production
