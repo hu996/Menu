@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Edit item";
     var tenantSlug = User.FindFirst("tenant_slug")?.Value ?? "restaurant";
+    var cspNonce = Context.Items["CspNonce"]?.ToString();
 }
 
 <nav class="breadcrumbs" aria-label="@UiText.Get("Breadcrumbs")">
@@ -54,7 +55,7 @@
             <label asp-for="CategoryId">@UiText.Get("Category")</label>
             <select asp-for="CategoryId">@foreach (var category in Model.CategoryOptions) { <option value="@category.Id">@category.Name</option> }</select>
             <label asp-for="ProductTypeCode"></label>
-            <select asp-for="ProductTypeCode"><option value="">@UiText.Get("Select product type from database")</option>@foreach (var type in Model.ProductTypes) { <option value="@type.Code">@type.NameEn</option> }</select>
+            <select asp-for="ProductTypeCode"><option value="">@UiText.Get("Select product type from database")</option>@foreach (var type in Model.ProductTypes) { <option value="@type.Code">@UiText.Business(type.NameEn, type.NameEn, type.NameAr)</option> }</select>
             <p class="muted">@UiText.Get("Product types are tenant lookup values and are not hard-coded in this editor.")</p>
         </section>
 
@@ -62,7 +63,7 @@
             <div class="form-section-heading"><span class="eyebrow">@UiText.Get("Pricing")</span><h2>@UiText.Get("Product pricing")</h2><p>@UiText.Get("Base price and currency are saved with this product; advanced adjustments remain in Pricing.")</p></div>
             <div class="form-grid">
                 <div><label asp-for="Price">@UiText.Get("Base price")</label><input asp-for="Price" type="number" step="0.01" inputmode="decimal" /></div>
-                <div><label asp-for="Currency"></label><select asp-for="Currency"><option value="">@UiText.Get("Select currency")</option>@foreach (var currency in Model.CurrencyOptions) { <option value="@currency.Code">@currency.NameEn (@currency.Code)</option> }</select></div>
+                <div><label asp-for="Currency"></label><select asp-for="Currency"><option value="">@UiText.Get("Select currency")</option>@foreach (var currency in Model.CurrencyOptions) { <option value="@currency.Code">@UiText.Business(currency.NameEn, currency.NameEn, currency.NameAr) (@currency.Code)</option> }</select></div>
             </div>
             <label asp-for="SortOrder">@UiText.Get("Display order")</label><input asp-for="SortOrder" type="number" inputmode="numeric" />
         </section>
@@ -144,7 +145,7 @@
 
 <div class="lightbox" data-lightbox hidden><button type="button" data-lightbox-close aria-label="@UiText.Get("Close image")">&times;</button><img data-lightbox-image alt="" /></div>
 @section Scripts {
-    <script>
+    <script nonce="@cspNonce">
         (() => {
             const input = document.querySelector('[data-image-input]');
             const previews = document.querySelector('[data-preview-grid]');

@@ -15,7 +15,8 @@
     var languageSwitchCulture = isArabic ? "en" : "ar";
     var languageSwitchLabel = isArabic ? UiText.Get("Switch to English") : UiText.Get("Switch to Arabic");
     var userName = User.Identity?.Name ?? "User";
-    var roleName = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? UiText.Get("Viewer");
+    var roleName = UiText.Get(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Viewer");
+    var cspNonce = Context.Items["CspNonce"]?.ToString();
     var feedback = new[] { (Key: "Success", Tone: "success"), (Key: "Error", Tone: "danger"), (Key: "Warning", Tone: "warning"), (Key: "Info", Tone: "info"), (Key: "ImageError", Tone: "danger") }
         .Select(item => (item.Tone, Message: UiText.Feedback(TempData.Peek(item.Key)?.ToString())))
         .Where(item => !string.IsNullOrWhiteSpace(item.Message))
@@ -31,8 +32,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Restaurant Menu Platform</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <title>@ViewData["Title"] - @UiText.Get("Restaurant Menu Platform")</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="@(isAuthenticated ? "admin-shell" : "public-shell")">
     <a class="skip-link" href="#main-content">@UiText.Get("Skip to content")</a>
@@ -108,7 +109,7 @@
                             @if (hasPermission("Orders.View"))
                             {
                                 <a data-nav-link href="@(tenantPath)/Orders/Index" title="@UiText.Get("Orders")"><span class="sidebar-icon" data-icon="clipboard" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Orders")</span></a>
-                                <a data-nav-link href="@(tenantPath)/Orders/Kitchen" title="Kitchen display"><span class="sidebar-icon" data-icon="monitor" aria-hidden="true"></span><span class="sidebar-link-label">Kitchen display</span></a>
+                                <a data-nav-link href="@(tenantPath)/Orders/Kitchen" title="@UiText.Get("Kitchen display")"><span class="sidebar-icon" data-icon="monitor" aria-hidden="true"></span><span class="sidebar-link-label">@UiText.Get("Kitchen display")</span></a>
                             }
                         </div>
                     }
@@ -185,7 +186,7 @@
             <div data-feedback data-tone="@item.Tone">@item.Message</div>
         }
     </div>
-    <script type="application/json" data-model-state>@Html.Raw(JsonSerializer.Serialize(modelStateErrors))</script>
+    <script type="application/json" nonce="@cspNonce" data-model-state>@Html.Raw(JsonSerializer.Serialize(modelStateErrors))</script>
     <div class="modal" data-modal hidden aria-hidden="true">
         <button class="modal-backdrop" type="button" data-modal-close aria-label="@UiText.Get("Close")"></button>
         <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
@@ -194,7 +195,7 @@
             <div class="modal-footer"><button class="btn btn-secondary" type="button" data-modal-close>@UiText.Get("Cancel")</button><button class="btn btn-primary" type="button" data-modal-confirm>@UiText.Get("Confirm")</button></div>
         </section>
     </div>
-    <script src="~/js/site.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

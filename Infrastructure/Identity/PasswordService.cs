@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using RestaurantMenuPlatform.Domain.Entities;
 
 namespace RestaurantMenuPlatform.Infrastructure.Identity;
@@ -9,14 +10,25 @@ public sealed class PasswordService
     private const int SaltSize = 16;
     private const int KeySize = 32;
     private const int Iterations = 120_000;
-    private readonly PasswordHasher<User> _identityHasher = new();
+    private readonly PasswordHasher<User> _identityHasher;
+    private readonly string _dummyHash;
+
+    public PasswordService() : this(Options.Create(new PasswordHasherOptions { IterationCount = 210_000 }))
+    {
+    }
+
+    public PasswordService(IOptions<PasswordHasherOptions> options)
+    {
+        _identityHasher = new PasswordHasher<User>(options);
+        _dummyHash = _identityHasher.HashPassword(new User(), "TimingOnly-Password-9!");
+    }
 
     public static void ValidateStrength(string password)
     {
-        if (string.IsNullOrWhiteSpace(password) || password.Length < 10 ||
+        if (string.IsNullOrWhiteSpace(password) || password.Length is < 10 or > 128 ||
             !password.Any(char.IsUpper) || !password.Any(char.IsLower) ||
             !password.Any(char.IsDigit) || password.All(char.IsLetterOrDigit))
-            throw new ArgumentException("Password must be at least 10 characters and include uppercase, lowercase, number, and symbol.");
+            throw new ArgumentException("Password must be 10 to 128 characters and include uppercase, lowercase, number, and symbol.");
     }
 
     public string Hash(string password)
@@ -27,12 +39,25 @@ public sealed class PasswordService
 
     public bool Verify(string password, string encodedHash)
     {
+        return Verify(password, encodedHash, out _);
+    }
+
+    public bool Verify(string password, string encodedHash, out bool needsRehash)
+    {
         if (!encodedHash.StartsWith("AQAAAA", StringComparison.Ordinal))
-            return VerifyLegacy(password, encodedHash);
+        {
+            var validLegacy = VerifyLegacy(password, encodedHash);
+            needsRehash = validLegacy;
+            return validLegacy;
+        }
 
         var result = _identityHasher.VerifyHashedPassword(new User(), encodedHash, password);
+        needsRehash = result == PasswordVerificationResult.SuccessRehashNeeded;
         return result is PasswordVerificationResult.Success or PasswordVerificationResult.SuccessRehashNeeded;
     }
+
+    public void PerformDummyVerification(string password) =>
+        _identityHasher.VerifyHashedPassword(new User(), _dummyHash, password);
 
     public bool NeedsRehash(string encodedHash) =>
         !encodedHash.StartsWith("AQAAAA", StringComparison.Ordinal);

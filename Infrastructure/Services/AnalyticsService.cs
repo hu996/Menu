@@ -21,69 +21,60 @@ public sealed class AnalyticsService : IAnalyticsService
         _currentUser = currentUser;
     }
 
-    public async Task TrackQrScanAsync(
+    public async Task TrackPublicMenuViewAsync(
         Guid branchId,
+        IReadOnlyCollection<Guid> menuIds,
+        bool isQrScan,
         string? userAgent,
         CancellationToken cancellationToken = default)
     {
-        await EnsureBranchAsync(branchId, cancellationToken);
-        await AddAsync(new AnalyticsEvent
-        {
-            TenantId = RequireTenant(),
-            EventType = AnalyticsEventType.QrScan,
-            BranchId = branchId,
-            Device = NormalizeDevice(userAgent)
-        }, cancellationToken);
-    }
-
-    public async Task TrackMenuViewAsync(
-        Guid branchId,
-        Guid menuId,
-        string? userAgent,
-        CancellationToken cancellationToken = default)
-    {
-        await EnsureBranchAndMenuAsync(branchId, menuId, cancellationToken);
-        await AddAsync(new AnalyticsEvent
-        {
-            TenantId = RequireTenant(),
-            EventType = AnalyticsEventType.MenuView,
-            BranchId = branchId,
-            MenuId = menuId,
-            Device = NormalizeDevice(userAgent)
-        }, cancellationToken);
-    }
-
-    public async Task TrackMenuItemViewsAsync(
-        Guid branchId,
-        Guid menuId,
-        IReadOnlyCollection<Guid> menuItemIds,
-        string? userAgent,
-        CancellationToken cancellationToken = default)
-    {
-        if (menuItemIds.Count == 0)
-            return;
-
-        await EnsureBranchAndMenuAsync(branchId, menuId, cancellationToken);
         var tenantId = RequireTenant();
-        var items = await _db.MenuItems
-            .Where(x => menuItemIds.Contains(x.Id))
-            .Join(_db.MenuCategories.Where(x => x.MenuId != Guid.Empty), item => item.MenuCategoryId, category => category.Id, (item, category) => new { item.Id, category.MenuId })
-            .Where(x => x.MenuId == menuId)
-            .Select(x => x.Id)
-            .ToListAsync(cancellationToken);
-
-        foreach (var itemId in items.Distinct())
+        var device = NormalizeDevice(userAgent);
+        foreach (var menuId in menuIds.Where(x => x != Guid.Empty).Distinct())
         {
             _db.AnalyticsEvents.Add(new AnalyticsEvent
             {
                 TenantId = tenantId,
-                EventType = AnalyticsEventType.MenuItemView,
+                EventType = AnalyticsEventType.MenuView,
                 BranchId = branchId,
                 MenuId = menuId,
-                MenuItemId = itemId,
-                Device = NormalizeDevice(userAgent)
+                Device = device
             });
         }
+
+        if (isQrScan)
+        {
+            _db.AnalyticsEvents.Add(new AnalyticsEvent
+            {
+                TenantId = tenantId,
+                EventType = AnalyticsEventType.QrScan,
+                BranchId = branchId,
+                Device = device
+            });
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task TrackMenuItemViewAsync(
+        Guid branchId,
+        Guid menuId,
+        Guid menuItemId,
+        string? userAgent,
+        CancellationToken cancellationToken = default)
+    {
+        if (menuId == Guid.Empty || menuItemId == Guid.Empty)
+            return;
+
+        _db.AnalyticsEvents.Add(new AnalyticsEvent
+        {
+            TenantId = RequireTenant(),
+            EventType = AnalyticsEventType.MenuItemView,
+            BranchId = branchId,
+            MenuId = menuId,
+            MenuItemId = menuItemId,
+            Device = NormalizeDevice(userAgent)
+        });
 
         await _db.SaveChangesAsync(cancellationToken);
     }
@@ -154,25 +145,6 @@ public sealed class AnalyticsService : IAnalyticsService
             .ToList();
 
         return new AnalyticsSummaryDto(totalScans, todayScans, mostViewedMenu, mostViewedItems, branchComparison);
-    }
-
-    private async Task EnsureBranchAsync(Guid branchId, CancellationToken cancellationToken)
-    {
-        if (!await _db.Branches.AnyAsync(x => x.Id == branchId, cancellationToken))
-            throw new InvalidOperationException("The analytics branch was not found in this tenant.");
-    }
-
-    private async Task EnsureBranchAndMenuAsync(Guid branchId, Guid menuId, CancellationToken cancellationToken)
-    {
-        await EnsureBranchAsync(branchId, cancellationToken);
-        if (!await _db.Menus.AnyAsync(x => x.Id == menuId, cancellationToken))
-            throw new InvalidOperationException("The analytics menu was not found in this tenant.");
-    }
-
-    private async Task AddAsync(AnalyticsEvent analyticsEvent, CancellationToken cancellationToken)
-    {
-        _db.AnalyticsEvents.Add(analyticsEvent);
-        await _db.SaveChangesAsync(cancellationToken);
     }
 
     private Guid RequireTenant() => _tenantContext.TenantId

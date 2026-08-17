@@ -43,6 +43,18 @@ public sealed class PaymentService : IPaymentService
                 .AnyAsync(x => x.Id == request.SubscriptionId.Value, cancellationToken))
             throw new EntitlementViolationException("The selected subscription was not found.", "subscription");
 
+        var reusable = await _db.PaymentTransactions
+            .AsNoTracking()
+            .Where(x => x.RequestedPlanId == request.PlanId &&
+                        x.SubscriptionId == request.SubscriptionId &&
+                        x.Status == PaymentStatus.Pending &&
+                        x.CreatedAtUtc >= DateTime.UtcNow.AddMinutes(-15) &&
+                        x.CheckoutUrl != null)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (reusable is not null)
+            return ToDto(reusable);
+
         var transaction = new PaymentTransaction
         {
             TenantId = tenantId,
@@ -64,8 +76,15 @@ public sealed class PaymentService : IPaymentService
                 cancellationToken);
             transaction.Provider = gatewayPayment.Provider;
             transaction.ProviderReference = gatewayPayment.ProviderReference;
+            transaction.CheckoutUrl = gatewayPayment.CheckoutUrl;
             transaction.Status = PaymentStatus.Pending;
             await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The provider may have accepted the request even if the caller disconnected.
+            // Keep the transaction initiated so a reconciliation/webhook can settle it.
+            throw;
         }
         catch
         {
@@ -252,5 +271,6 @@ public sealed class PaymentService : IPaymentService
         transaction.ProviderReference,
         transaction.Status,
         transaction.CreatedAtUtc,
-        transaction.CompletedAtUtc);
+        transaction.CompletedAtUtc,
+        transaction.CheckoutUrl);
 }

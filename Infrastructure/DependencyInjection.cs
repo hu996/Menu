@@ -8,6 +8,8 @@ using RestaurantMenuPlatform.Infrastructure.Persistence;
 using RestaurantMenuPlatform.Infrastructure.Services;
 using RestaurantMenuPlatform.Infrastructure.Storage;
 using RestaurantMenuPlatform.Infrastructure.Payments;
+using RestaurantMenuPlatform.Infrastructure.Email;
+using Microsoft.AspNetCore.Identity;
 
 namespace RestaurantMenuPlatform.Infrastructure;
 
@@ -19,6 +21,8 @@ public static class DependencyInjection
     {
         services.AddScoped<TenantContext>();
         services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+        services.Configure<PasswordHasherOptions>(options =>
+            options.IterationCount = TryGetInt(configuration["Security:PasswordHashIterations"], 210_000));
         services.AddSingleton<PasswordService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
@@ -26,12 +30,28 @@ public static class DependencyInjection
         services.AddScoped<IEntitlementService, EntitlementService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
-        var paymentProvider = configuration["Payments:Provider"]?.Trim();
-        if (string.Equals(paymentProvider, "Sandbox", StringComparison.OrdinalIgnoreCase))
-            services.AddSingleton<IPaymentGateway, SandboxPaymentGateway>();
-        else
-            services.AddSingleton<IPaymentGateway, UnconfiguredPaymentGateway>();
+        services.AddSingleton<SandboxPaymentGateway>();
+        services.AddSingleton<UnconfiguredPaymentGateway>();
+        services.AddSingleton(serviceProvider => new ExternalPaymentGateway(
+            new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(TryGetInt(configuration["Payments:TimeoutSeconds"], 20))
+            },
+            configuration));
+        services.AddScoped<IPaymentGateway>(serviceProvider =>
+        {
+            var paymentProvider = configuration["Payments:Provider"]?.Trim();
+            if (string.Equals(paymentProvider, "Sandbox", StringComparison.OrdinalIgnoreCase))
+                return serviceProvider.GetRequiredService<SandboxPaymentGateway>();
+            if (string.Equals(paymentProvider, "External", StringComparison.OrdinalIgnoreCase))
+                return serviceProvider.GetRequiredService<ExternalPaymentGateway>();
+            return serviceProvider.GetRequiredService<UnconfiguredPaymentGateway>();
+        });
         services.AddScoped<IPaymentService, PaymentService>();
+        if (string.Equals(configuration["Email:Provider"], "Smtp", StringComparison.OrdinalIgnoreCase))
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        else
+            services.AddSingleton<IEmailSender, UnconfiguredEmailSender>();
         services.AddScoped<ILookupService, LookupService>();
         services.AddScoped<IPricingService, PricingService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
@@ -50,8 +70,12 @@ public static class DependencyInjection
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IQrCodeService, QrCodeService>();
         services.AddScoped<ITableService, TableService>();
-        services.AddSingleton<HttpClient>();
-        services.AddSingleton<S3CompatibleImageStorage>();
+        services.AddSingleton(serviceProvider => new S3CompatibleImageStorage(
+            new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(TryGetInt(configuration["Storage:TimeoutSeconds"], 30))
+            },
+            configuration));
         services.AddSingleton<IImageStorage>(serviceProvider =>
         {
             var provider = configuration["Storage:Provider"]?.Trim();
@@ -77,7 +101,6 @@ public static class DependencyInjection
                         errorNumbersToAdd: null)));
 
         services.AddScoped<IDashboardService, DashboardService>();
-
         return services;
     }
 

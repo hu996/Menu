@@ -3377,3 +3377,1811 @@ GO
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    ALTER TABLE [Memberships] ADD CONSTRAINT [AK_Memberships_TenantId_Id] UNIQUE ([TenantId], [Id]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    CREATE TABLE [PermissionDefinitions] (
+        [Id] uniqueidentifier NOT NULL,
+        [Code] nvarchar(120) NOT NULL,
+        [GroupCode] nvarchar(64) NOT NULL,
+        [NameEn] nvarchar(160) NOT NULL,
+        [NameAr] nvarchar(160) NOT NULL,
+        [SortOrder] int NOT NULL,
+        [IsActive] bit NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        CONSTRAINT [PK_PermissionDefinitions] PRIMARY KEY ([Id])
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    CREATE TABLE [RolePermissions] (
+        [Id] uniqueidentifier NOT NULL,
+        [Role] nvarchar(450) NOT NULL,
+        [PermissionCode] nvarchar(120) NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        CONSTRAINT [PK_RolePermissions] PRIMARY KEY ([Id])
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    CREATE TABLE [UserPermissions] (
+        [Id] uniqueidentifier NOT NULL,
+        [MembershipId] uniqueidentifier NOT NULL,
+        [PermissionCode] nvarchar(120) NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_UserPermissions] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_UserPermissions_Memberships_TenantId_MembershipId] FOREIGN KEY ([TenantId], [MembershipId]) REFERENCES [Memberships] ([TenantId], [Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_PermissionDefinitions_Code] ON [PermissionDefinitions] ([Code]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_RolePermissions_Role_PermissionCode] ON [RolePermissions] ([Role], [PermissionCode]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_UserPermissions_TenantId_MembershipId_PermissionCode] ON [UserPermissions] ([TenantId], [MembershipId], [PermissionCode]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813155411_AddUserPermissions'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260813155411_AddUserPermissions', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    ALTER TABLE [ModifierOptions] ADD CONSTRAINT [AK_ModifierOptions_TenantId_Id] UNIQUE ([TenantId], [Id]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE TABLE [Orders] (
+        [Id] uniqueidentifier NOT NULL,
+        [BranchId] uniqueidentifier NOT NULL,
+        [MenuId] uniqueidentifier NULL,
+        [OrderNumber] nvarchar(32) NOT NULL,
+        [IdempotencyKey] nvarchar(120) NOT NULL,
+        [CustomerName] nvarchar(160) NOT NULL,
+        [CustomerPhone] nvarchar(40) NOT NULL,
+        [Notes] nvarchar(500) NULL,
+        [Total] decimal(18,2) NOT NULL,
+        [Currency] nvarchar(3) NOT NULL,
+        [Status] nvarchar(max) NOT NULL,
+        [CompletedAtUtc] datetime2 NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_Orders] PRIMARY KEY ([Id]),
+        CONSTRAINT [AK_Orders_TenantId_Id] UNIQUE ([TenantId], [Id]),
+        CONSTRAINT [FK_Orders_Branches_TenantId_BranchId] FOREIGN KEY ([TenantId], [BranchId]) REFERENCES [Branches] ([TenantId], [Id]),
+        CONSTRAINT [FK_Orders_Menus_TenantId_MenuId] FOREIGN KEY ([TenantId], [MenuId]) REFERENCES [Menus] ([TenantId], [Id])
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE TABLE [OrderItems] (
+        [Id] uniqueidentifier NOT NULL,
+        [OrderId] uniqueidentifier NOT NULL,
+        [MenuItemId] uniqueidentifier NOT NULL,
+        [ProductName] nvarchar(160) NOT NULL,
+        [UnitPrice] decimal(18,2) NOT NULL,
+        [Quantity] int NOT NULL,
+        [LineTotal] decimal(18,2) NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_OrderItems] PRIMARY KEY ([Id]),
+        CONSTRAINT [AK_OrderItems_TenantId_Id] UNIQUE ([TenantId], [Id]),
+        CONSTRAINT [FK_OrderItems_MenuItems_TenantId_MenuItemId] FOREIGN KEY ([TenantId], [MenuItemId]) REFERENCES [MenuItems] ([TenantId], [Id]),
+        CONSTRAINT [FK_OrderItems_Orders_TenantId_OrderId] FOREIGN KEY ([TenantId], [OrderId]) REFERENCES [Orders] ([TenantId], [Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE TABLE [OrderStatusHistories] (
+        [Id] uniqueidentifier NOT NULL,
+        [OrderId] uniqueidentifier NOT NULL,
+        [FromStatus] nvarchar(max) NULL,
+        [ToStatus] nvarchar(max) NOT NULL,
+        [ActorUserId] uniqueidentifier NULL,
+        [ActorDisplayName] nvarchar(160) NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_OrderStatusHistories] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_OrderStatusHistories_Orders_TenantId_OrderId] FOREIGN KEY ([TenantId], [OrderId]) REFERENCES [Orders] ([TenantId], [Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE TABLE [OrderItemModifiers] (
+        [Id] uniqueidentifier NOT NULL,
+        [OrderItemId] uniqueidentifier NOT NULL,
+        [ModifierOptionId] uniqueidentifier NOT NULL,
+        [OptionName] nvarchar(160) NOT NULL,
+        [PriceAdjustment] decimal(18,2) NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_OrderItemModifiers] PRIMARY KEY ([Id]),
+        CONSTRAINT [AK_OrderItemModifiers_TenantId_Id] UNIQUE ([TenantId], [Id]),
+        CONSTRAINT [FK_OrderItemModifiers_ModifierOptions_TenantId_ModifierOptionId] FOREIGN KEY ([TenantId], [ModifierOptionId]) REFERENCES [ModifierOptions] ([TenantId], [Id]),
+        CONSTRAINT [FK_OrderItemModifiers_OrderItems_TenantId_OrderItemId] FOREIGN KEY ([TenantId], [OrderItemId]) REFERENCES [OrderItems] ([TenantId], [Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_OrderItemModifiers_TenantId_ModifierOptionId] ON [OrderItemModifiers] ([TenantId], [ModifierOptionId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_OrderItemModifiers_TenantId_OrderItemId] ON [OrderItemModifiers] ([TenantId], [OrderItemId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_OrderItems_TenantId_MenuItemId] ON [OrderItems] ([TenantId], [MenuItemId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_OrderItems_TenantId_OrderId] ON [OrderItems] ([TenantId], [OrderId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_Orders_TenantId_BranchId] ON [Orders] ([TenantId], [BranchId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_Orders_TenantId_IdempotencyKey] ON [Orders] ([TenantId], [IdempotencyKey]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_Orders_TenantId_MenuId] ON [Orders] ([TenantId], [MenuId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_Orders_TenantId_OrderNumber] ON [Orders] ([TenantId], [OrderNumber]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    CREATE INDEX [IX_OrderStatusHistories_TenantId_OrderId] ON [OrderStatusHistories] ([TenantId], [OrderId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813172855_AddOrderLifecycle'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260813172855_AddOrderLifecycle', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813182841_AddTenantBrandingImages'
+)
+BEGIN
+    CREATE TABLE [TenantBrandingImages] (
+        [Id] uniqueidentifier NOT NULL,
+        [Kind] nvarchar(32) NOT NULL,
+        [Url] nvarchar(500) NOT NULL,
+        [StorageKey] nvarchar(260) NOT NULL,
+        [OriginalFileName] nvarchar(260) NULL,
+        [ContentType] nvarchar(100) NOT NULL,
+        [SizeBytes] bigint NOT NULL,
+        [AltText] nvarchar(300) NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_TenantBrandingImages] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_TenantBrandingImages_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [Tenants] ([Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813182841_AddTenantBrandingImages'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_TenantBrandingImages_TenantId_Kind] ON [TenantBrandingImages] ([TenantId], [Kind]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260813182841_AddTenantBrandingImages'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260813182841_AddTenantBrandingImages', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [QrCodes] ADD [TableId] uniqueidentifier NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [Orders] ADD [QrCodeId] uniqueidentifier NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [Orders] ADD [TableId] uniqueidentifier NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [QrCodes] ADD CONSTRAINT [AK_QrCodes_TenantId_Id] UNIQUE ([TenantId], [Id]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    CREATE TABLE [RestaurantTables] (
+        [Id] uniqueidentifier NOT NULL,
+        [BranchId] uniqueidentifier NOT NULL,
+        [Name] nvarchar(120) NOT NULL,
+        [NameAr] nvarchar(120) NULL,
+        [IsActive] bit NOT NULL,
+        [CreatedAtUtc] datetime2 NOT NULL,
+        [UpdatedAtUtc] datetime2 NULL,
+        [TenantId] uniqueidentifier NOT NULL,
+        CONSTRAINT [PK_RestaurantTables] PRIMARY KEY ([Id]),
+        CONSTRAINT [AK_RestaurantTables_TenantId_Id] UNIQUE ([TenantId], [Id]),
+        CONSTRAINT [FK_RestaurantTables_Branches_TenantId_BranchId] FOREIGN KEY ([TenantId], [BranchId]) REFERENCES [Branches] ([TenantId], [Id])
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    CREATE INDEX [IX_QrCodes_TenantId_BranchId_TableId_TargetType] ON [QrCodes] ([TenantId], [BranchId], [TableId], [TargetType]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    CREATE INDEX [IX_QrCodes_TenantId_TableId] ON [QrCodes] ([TenantId], [TableId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    CREATE INDEX [IX_Orders_TenantId_QrCodeId] ON [Orders] ([TenantId], [QrCodeId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    CREATE INDEX [IX_Orders_TenantId_TableId] ON [Orders] ([TenantId], [TableId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_RestaurantTables_TenantId_BranchId_Name] ON [RestaurantTables] ([TenantId], [BranchId], [Name]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [Orders] ADD CONSTRAINT [FK_Orders_QrCodes_TenantId_QrCodeId] FOREIGN KEY ([TenantId], [QrCodeId]) REFERENCES [QrCodes] ([TenantId], [Id]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [Orders] ADD CONSTRAINT [FK_Orders_RestaurantTables_TenantId_TableId] FOREIGN KEY ([TenantId], [TableId]) REFERENCES [RestaurantTables] ([TenantId], [Id]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    ALTER TABLE [QrCodes] ADD CONSTRAINT [FK_QrCodes_RestaurantTables_TenantId_TableId] FOREIGN KEY ([TenantId], [TableId]) REFERENCES [RestaurantTables] ([TenantId], [Id]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814001000_AddRestaurantTablesAndOrderReferences'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260814001000_AddRestaurantTablesAndOrderReferences', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814004826_EnforceTableSpecificQrUniqueness'
+)
+BEGIN
+    DROP INDEX [IX_QrCodes_TenantId_BranchId_TableId_TargetType] ON [QrCodes];
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814004826_EnforceTableSpecificQrUniqueness'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_QrCodes_TenantId_BranchId_TableId_TargetType] ON [QrCodes] ([TenantId], [BranchId], [TableId], [TargetType]) WHERE [TableId] IS NOT NULL');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814004826_EnforceTableSpecificQrUniqueness'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260814004826_EnforceTableSpecificQrUniqueness', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814123000_RetireLegacyBranchQrCodes'
+)
+BEGIN
+    UPDATE [QrCodes] SET [IsActive] = 0, [UpdatedAtUtc] = SYSUTCDATETIME() WHERE [TableId] IS NULL AND [IsActive] = 1;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814123000_RetireLegacyBranchQrCodes'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260814123000_RetireLegacyBranchQrCodes', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM [Users]
+        WHERE DATALENGTH([Email]) > 640
+           OR DATALENGTH([NormalizedEmail]) > 640
+           OR DATALENGTH([DisplayName]) > 240
+           OR DATALENGTH([PasswordHash]) > 1024
+           OR DATALENGTH([SecurityStamp]) > 128)
+        THROW 51000, 'Production hardening cannot shorten one or more Users values. Clean the oversized data and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM [PaymentTransactions]
+        WHERE DATALENGTH([Provider]) > 128
+           OR DATALENGTH([ProviderReference]) > 400
+           OR DATALENGTH([Status]) > 64)
+        THROW 51001, 'Production hardening cannot shorten one or more PaymentTransactions values. Clean the oversized data and retry the migration.', 1;
+
+    IF EXISTS (SELECT 1 FROM [Orders] WHERE DATALENGTH([Status]) > 64)
+        THROW 51002, 'Production hardening cannot shorten one or more Orders status values. Clean the oversized data and retry the migration.', 1;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE TABLE [DistributedCache] (
+        [Id] nvarchar(449) NOT NULL,
+        [Value] varbinary(max) NOT NULL,
+        [ExpiresAtTime] datetimeoffset NOT NULL,
+        [SlidingExpirationInSeconds] bigint NULL,
+        [AbsoluteExpiration] datetimeoffset NULL,
+        CONSTRAINT [PK_DistributedCache] PRIMARY KEY ([Id])
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_DistributedCache_ExpiresAtTime] ON [DistributedCache] ([ExpiresAtTime]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_PasswordResetTokens_UserId] ON [PasswordResetTokens];
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_Orders_TenantId_BranchId] ON [Orders];
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_MenuItems_TenantId_MenuCategoryId] ON [MenuItems];
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_MenuCategories_TenantId_MenuId] ON [MenuCategories];
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_BranchMenus_TenantId_MenuId] ON [BranchMenus];
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DECLARE @var15 sysname;
+    SELECT @var15 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Users]') AND [c].[name] = N'SecurityStamp');
+    IF @var15 IS NOT NULL EXEC(N'ALTER TABLE [Users] DROP CONSTRAINT [' + @var15 + '];');
+    ALTER TABLE [Users] ALTER COLUMN [SecurityStamp] nvarchar(64) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DECLARE @var16 sysname;
+    SELECT @var16 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Users]') AND [c].[name] = N'PasswordHash');
+    IF @var16 IS NOT NULL EXEC(N'ALTER TABLE [Users] DROP CONSTRAINT [' + @var16 + '];');
+    ALTER TABLE [Users] ALTER COLUMN [PasswordHash] nvarchar(512) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_Users_NormalizedEmail] ON [Users];
+    DECLARE @var17 sysname;
+    SELECT @var17 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Users]') AND [c].[name] = N'NormalizedEmail');
+    IF @var17 IS NOT NULL EXEC(N'ALTER TABLE [Users] DROP CONSTRAINT [' + @var17 + '];');
+    ALTER TABLE [Users] ALTER COLUMN [NormalizedEmail] nvarchar(320) NOT NULL;
+    CREATE UNIQUE INDEX [IX_Users_NormalizedEmail] ON [Users] ([NormalizedEmail]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DECLARE @var18 sysname;
+    SELECT @var18 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Users]') AND [c].[name] = N'Email');
+    IF @var18 IS NOT NULL EXEC(N'ALTER TABLE [Users] DROP CONSTRAINT [' + @var18 + '];');
+    ALTER TABLE [Users] ALTER COLUMN [Email] nvarchar(320) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DECLARE @var19 sysname;
+    SELECT @var19 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Users]') AND [c].[name] = N'DisplayName');
+    IF @var19 IS NOT NULL EXEC(N'ALTER TABLE [Users] DROP CONSTRAINT [' + @var19 + '];');
+    ALTER TABLE [Users] ALTER COLUMN [DisplayName] nvarchar(120) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DECLARE @var20 sysname;
+    SELECT @var20 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[PaymentTransactions]') AND [c].[name] = N'Status');
+    IF @var20 IS NOT NULL EXEC(N'ALTER TABLE [PaymentTransactions] DROP CONSTRAINT [' + @var20 + '];');
+    ALTER TABLE [PaymentTransactions] ALTER COLUMN [Status] nvarchar(32) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_PaymentTransactions_Provider_ProviderReference] ON [PaymentTransactions];
+    DECLARE @var21 sysname;
+    SELECT @var21 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[PaymentTransactions]') AND [c].[name] = N'ProviderReference');
+    IF @var21 IS NOT NULL EXEC(N'ALTER TABLE [PaymentTransactions] DROP CONSTRAINT [' + @var21 + '];');
+    ALTER TABLE [PaymentTransactions] ALTER COLUMN [ProviderReference] nvarchar(200) NOT NULL;
+    CREATE UNIQUE INDEX [IX_PaymentTransactions_Provider_ProviderReference] ON [PaymentTransactions] ([Provider], [ProviderReference]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DROP INDEX [IX_PaymentTransactions_Provider_ProviderReference] ON [PaymentTransactions];
+    DECLARE @var22 sysname;
+    SELECT @var22 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[PaymentTransactions]') AND [c].[name] = N'Provider');
+    IF @var22 IS NOT NULL EXEC(N'ALTER TABLE [PaymentTransactions] DROP CONSTRAINT [' + @var22 + '];');
+    ALTER TABLE [PaymentTransactions] ALTER COLUMN [Provider] nvarchar(64) NOT NULL;
+    CREATE UNIQUE INDEX [IX_PaymentTransactions_Provider_ProviderReference] ON [PaymentTransactions] ([Provider], [ProviderReference]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    ALTER TABLE [PaymentTransactions] ADD [CheckoutUrl] nvarchar(1000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    ALTER TABLE [PaymentTransactions] ADD [RowVersion] rowversion NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    DECLARE @var23 sysname;
+    SELECT @var23 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Orders]') AND [c].[name] = N'Status');
+    IF @var23 IS NOT NULL EXEC(N'ALTER TABLE [Orders] DROP CONSTRAINT [' + @var23 + '];');
+    ALTER TABLE [Orders] ALTER COLUMN [Status] nvarchar(32) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    ALTER TABLE [Orders] ADD [RowVersion] rowversion NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_PaymentTransactions_TenantId_Status_CreatedAtUtc] ON [PaymentTransactions] ([TenantId], [Status], [CreatedAtUtc]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_PasswordResetTokens_UserId_UsedAtUtc_ExpiresAtUtc] ON [PasswordResetTokens] ([UserId], [UsedAtUtc], [ExpiresAtUtc]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_Orders_TenantId_BranchId_Status_CreatedAtUtc] ON [Orders] ([TenantId], [BranchId], [Status], [CreatedAtUtc]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_MenuItems_TenantId_MenuCategoryId_IsAvailable_SortOrder] ON [MenuItems] ([TenantId], [MenuCategoryId], [IsAvailable], [SortOrder]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_MenuCategories_TenantId_MenuId_IsActive_SortOrder] ON [MenuCategories] ([TenantId], [MenuId], [IsActive], [SortOrder]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    CREATE INDEX [IX_BranchMenus_TenantId_MenuId_IsActive] ON [BranchMenus] ([TenantId], [MenuId], [IsActive]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814233447_ProductionHardening'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260814233447_ProductionHardening', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM [Tenants]
+        WHERE DATALENGTH([Slug]) > 240 OR DATALENGTH([Phone]) > 80
+           OR DATALENGTH([NameEn]) > 320 OR DATALENGTH([NameAr]) > 320 OR DATALENGTH([Name]) > 320
+           OR DATALENGTH([LogoUrl]) > 2000 OR DATALENGTH([Email]) > 640
+           OR DATALENGTH([DefaultLanguage]) > 20 OR DATALENGTH([Currency]) > 16
+           OR DATALENGTH([CoverImageUrl]) > 2000 OR DATALENGTH([Address]) > 1000)
+        THROW 51010, 'Operational string constraints found oversized Tenants data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [Subscriptions]
+        WHERE DATALENGTH([Status]) > 64 OR DATALENGTH([PaymentProvider]) > 128
+           OR DATALENGTH([ExternalSubscriptionId]) > 400)
+        THROW 51011, 'Operational string constraints found oversized Subscriptions data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (SELECT 1 FROM [PaymentTransactions] WHERE DATALENGTH([Currency]) > 16)
+        THROW 51012, 'Operational string constraints found oversized PaymentTransactions currency data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [OrderStatusHistories]
+        WHERE DATALENGTH([ToStatus]) > 64 OR DATALENGTH([FromStatus]) > 64)
+        THROW 51013, 'Operational string constraints found oversized order status history data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [Menus]
+        WHERE DATALENGTH([Status]) > 64 OR DATALENGTH([Slug]) > 240
+           OR DATALENGTH([NameEn]) > 320 OR DATALENGTH([NameAr]) > 320 OR DATALENGTH([Name]) > 320)
+        THROW 51014, 'Operational string constraints found oversized Menus data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [MenuItems]
+        WHERE DATALENGTH([NameEn]) > 320 OR DATALENGTH([NameAr]) > 320 OR DATALENGTH([Name]) > 320
+           OR DATALENGTH([DescriptionEn]) > 4000 OR DATALENGTH([DescriptionAr]) > 4000
+           OR DATALENGTH([Description]) > 4000 OR DATALENGTH([Currency]) > 16)
+        THROW 51015, 'Operational string constraints found oversized MenuItems data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [MenuCategories]
+        WHERE DATALENGTH([NameEn]) > 320 OR DATALENGTH([NameAr]) > 320 OR DATALENGTH([Name]) > 320
+           OR DATALENGTH([DescriptionAr]) > 2000 OR DATALENGTH([Description]) > 2000)
+        THROW 51016, 'Operational string constraints found oversized MenuCategories data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (SELECT 1 FROM [Memberships] WHERE DATALENGTH([Role]) > 64)
+        THROW 51017, 'Operational string constraints found oversized Memberships role data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [BranchSpecificMenuItems]
+        WHERE DATALENGTH([NameEn]) > 320 OR DATALENGTH([NameAr]) > 320 OR DATALENGTH([Name]) > 320
+           OR DATALENGTH([DescriptionEn]) > 4000 OR DATALENGTH([DescriptionAr]) > 4000
+           OR DATALENGTH([Description]) > 4000 OR DATALENGTH([Currency]) > 16)
+        THROW 51018, 'Operational string constraints found oversized branch-specific menu item data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [Branches]
+        WHERE DATALENGTH([Slug]) > 240 OR DATALENGTH([Phone]) > 80 OR DATALENGTH([OpeningHours]) > 2000
+           OR DATALENGTH([NameEn]) > 320 OR DATALENGTH([NameAr]) > 320 OR DATALENGTH([Name]) > 320
+           OR DATALENGTH([Address]) > 1000)
+        THROW 51019, 'Operational string constraints found oversized Branches data. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [AuditLogs]
+        WHERE DATALENGTH([EntityType]) > 240 OR DATALENGTH([ActorDisplayName]) > 320 OR DATALENGTH([Action]) > 240)
+        THROW 51020, 'Operational string constraints found oversized AuditLogs metadata. Clean the values and retry the migration.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM [AnalyticsEvents]
+        WHERE DATALENGTH([EventType]) > 64 OR DATALENGTH([Device]) > 1024)
+        THROW 51021, 'Operational string constraints found oversized AnalyticsEvents data. Clean the values and retry the migration.', 1;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DROP INDEX [IX_Tenants_Slug] ON [Tenants];
+    DECLARE @var24 sysname;
+    SELECT @var24 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'Slug');
+    IF @var24 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var24 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [Slug] nvarchar(120) NOT NULL;
+    CREATE UNIQUE INDEX [IX_Tenants_Slug] ON [Tenants] ([Slug]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var25 sysname;
+    SELECT @var25 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'Phone');
+    IF @var25 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var25 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [Phone] nvarchar(40) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var26 sysname;
+    SELECT @var26 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'NameEn');
+    IF @var26 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var26 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [NameEn] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var27 sysname;
+    SELECT @var27 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'NameAr');
+    IF @var27 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var27 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [NameAr] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var28 sysname;
+    SELECT @var28 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'Name');
+    IF @var28 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var28 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [Name] nvarchar(160) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var29 sysname;
+    SELECT @var29 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'LogoUrl');
+    IF @var29 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var29 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [LogoUrl] nvarchar(1000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var30 sysname;
+    SELECT @var30 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'Email');
+    IF @var30 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var30 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [Email] nvarchar(320) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var31 sysname;
+    SELECT @var31 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'DefaultLanguage');
+    IF @var31 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var31 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [DefaultLanguage] nvarchar(10) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var32 sysname;
+    SELECT @var32 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'Currency');
+    IF @var32 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var32 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [Currency] nvarchar(8) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var33 sysname;
+    SELECT @var33 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'CoverImageUrl');
+    IF @var33 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var33 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [CoverImageUrl] nvarchar(1000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var34 sysname;
+    SELECT @var34 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Tenants]') AND [c].[name] = N'Address');
+    IF @var34 IS NOT NULL EXEC(N'ALTER TABLE [Tenants] DROP CONSTRAINT [' + @var34 + '];');
+    ALTER TABLE [Tenants] ALTER COLUMN [Address] nvarchar(500) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var35 sysname;
+    SELECT @var35 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Subscriptions]') AND [c].[name] = N'Status');
+    IF @var35 IS NOT NULL EXEC(N'ALTER TABLE [Subscriptions] DROP CONSTRAINT [' + @var35 + '];');
+    ALTER TABLE [Subscriptions] ALTER COLUMN [Status] nvarchar(32) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var36 sysname;
+    SELECT @var36 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Subscriptions]') AND [c].[name] = N'PaymentProvider');
+    IF @var36 IS NOT NULL EXEC(N'ALTER TABLE [Subscriptions] DROP CONSTRAINT [' + @var36 + '];');
+    ALTER TABLE [Subscriptions] ALTER COLUMN [PaymentProvider] nvarchar(64) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var37 sysname;
+    SELECT @var37 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Subscriptions]') AND [c].[name] = N'ExternalSubscriptionId');
+    IF @var37 IS NOT NULL EXEC(N'ALTER TABLE [Subscriptions] DROP CONSTRAINT [' + @var37 + '];');
+    ALTER TABLE [Subscriptions] ALTER COLUMN [ExternalSubscriptionId] nvarchar(200) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var38 sysname;
+    SELECT @var38 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[PaymentTransactions]') AND [c].[name] = N'Currency');
+    IF @var38 IS NOT NULL EXEC(N'ALTER TABLE [PaymentTransactions] DROP CONSTRAINT [' + @var38 + '];');
+    ALTER TABLE [PaymentTransactions] ALTER COLUMN [Currency] nvarchar(8) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var39 sysname;
+    SELECT @var39 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[OrderStatusHistories]') AND [c].[name] = N'ToStatus');
+    IF @var39 IS NOT NULL EXEC(N'ALTER TABLE [OrderStatusHistories] DROP CONSTRAINT [' + @var39 + '];');
+    ALTER TABLE [OrderStatusHistories] ALTER COLUMN [ToStatus] nvarchar(32) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var40 sysname;
+    SELECT @var40 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[OrderStatusHistories]') AND [c].[name] = N'FromStatus');
+    IF @var40 IS NOT NULL EXEC(N'ALTER TABLE [OrderStatusHistories] DROP CONSTRAINT [' + @var40 + '];');
+    ALTER TABLE [OrderStatusHistories] ALTER COLUMN [FromStatus] nvarchar(32) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var41 sysname;
+    SELECT @var41 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Menus]') AND [c].[name] = N'Status');
+    IF @var41 IS NOT NULL EXEC(N'ALTER TABLE [Menus] DROP CONSTRAINT [' + @var41 + '];');
+    ALTER TABLE [Menus] ALTER COLUMN [Status] nvarchar(32) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DROP INDEX [IX_Menus_TenantId_Slug] ON [Menus];
+    DECLARE @var42 sysname;
+    SELECT @var42 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Menus]') AND [c].[name] = N'Slug');
+    IF @var42 IS NOT NULL EXEC(N'ALTER TABLE [Menus] DROP CONSTRAINT [' + @var42 + '];');
+    ALTER TABLE [Menus] ALTER COLUMN [Slug] nvarchar(120) NOT NULL;
+    CREATE UNIQUE INDEX [IX_Menus_TenantId_Slug] ON [Menus] ([TenantId], [Slug]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var43 sysname;
+    SELECT @var43 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Menus]') AND [c].[name] = N'NameEn');
+    IF @var43 IS NOT NULL EXEC(N'ALTER TABLE [Menus] DROP CONSTRAINT [' + @var43 + '];');
+    ALTER TABLE [Menus] ALTER COLUMN [NameEn] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var44 sysname;
+    SELECT @var44 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Menus]') AND [c].[name] = N'NameAr');
+    IF @var44 IS NOT NULL EXEC(N'ALTER TABLE [Menus] DROP CONSTRAINT [' + @var44 + '];');
+    ALTER TABLE [Menus] ALTER COLUMN [NameAr] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var45 sysname;
+    SELECT @var45 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Menus]') AND [c].[name] = N'Name');
+    IF @var45 IS NOT NULL EXEC(N'ALTER TABLE [Menus] DROP CONSTRAINT [' + @var45 + '];');
+    ALTER TABLE [Menus] ALTER COLUMN [Name] nvarchar(160) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var46 sysname;
+    SELECT @var46 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'NameEn');
+    IF @var46 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var46 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [NameEn] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var47 sysname;
+    SELECT @var47 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'NameAr');
+    IF @var47 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var47 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [NameAr] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var48 sysname;
+    SELECT @var48 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'Name');
+    IF @var48 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var48 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [Name] nvarchar(160) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var49 sysname;
+    SELECT @var49 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'DescriptionEn');
+    IF @var49 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var49 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [DescriptionEn] nvarchar(2000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var50 sysname;
+    SELECT @var50 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'DescriptionAr');
+    IF @var50 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var50 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [DescriptionAr] nvarchar(2000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var51 sysname;
+    SELECT @var51 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'Description');
+    IF @var51 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var51 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [Description] nvarchar(2000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var52 sysname;
+    SELECT @var52 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuItems]') AND [c].[name] = N'Currency');
+    IF @var52 IS NOT NULL EXEC(N'ALTER TABLE [MenuItems] DROP CONSTRAINT [' + @var52 + '];');
+    ALTER TABLE [MenuItems] ALTER COLUMN [Currency] nvarchar(8) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var53 sysname;
+    SELECT @var53 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuCategories]') AND [c].[name] = N'NameEn');
+    IF @var53 IS NOT NULL EXEC(N'ALTER TABLE [MenuCategories] DROP CONSTRAINT [' + @var53 + '];');
+    ALTER TABLE [MenuCategories] ALTER COLUMN [NameEn] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var54 sysname;
+    SELECT @var54 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuCategories]') AND [c].[name] = N'NameAr');
+    IF @var54 IS NOT NULL EXEC(N'ALTER TABLE [MenuCategories] DROP CONSTRAINT [' + @var54 + '];');
+    ALTER TABLE [MenuCategories] ALTER COLUMN [NameAr] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var55 sysname;
+    SELECT @var55 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuCategories]') AND [c].[name] = N'Name');
+    IF @var55 IS NOT NULL EXEC(N'ALTER TABLE [MenuCategories] DROP CONSTRAINT [' + @var55 + '];');
+    ALTER TABLE [MenuCategories] ALTER COLUMN [Name] nvarchar(160) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var56 sysname;
+    SELECT @var56 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuCategories]') AND [c].[name] = N'DescriptionAr');
+    IF @var56 IS NOT NULL EXEC(N'ALTER TABLE [MenuCategories] DROP CONSTRAINT [' + @var56 + '];');
+    ALTER TABLE [MenuCategories] ALTER COLUMN [DescriptionAr] nvarchar(1000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var57 sysname;
+    SELECT @var57 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[MenuCategories]') AND [c].[name] = N'Description');
+    IF @var57 IS NOT NULL EXEC(N'ALTER TABLE [MenuCategories] DROP CONSTRAINT [' + @var57 + '];');
+    ALTER TABLE [MenuCategories] ALTER COLUMN [Description] nvarchar(1000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var58 sysname;
+    SELECT @var58 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Memberships]') AND [c].[name] = N'Role');
+    IF @var58 IS NOT NULL EXEC(N'ALTER TABLE [Memberships] DROP CONSTRAINT [' + @var58 + '];');
+    ALTER TABLE [Memberships] ALTER COLUMN [Role] nvarchar(32) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var59 sysname;
+    SELECT @var59 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'NameEn');
+    IF @var59 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var59 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [NameEn] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var60 sysname;
+    SELECT @var60 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'NameAr');
+    IF @var60 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var60 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [NameAr] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var61 sysname;
+    SELECT @var61 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'Name');
+    IF @var61 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var61 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [Name] nvarchar(160) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var62 sysname;
+    SELECT @var62 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'DescriptionEn');
+    IF @var62 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var62 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [DescriptionEn] nvarchar(2000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var63 sysname;
+    SELECT @var63 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'DescriptionAr');
+    IF @var63 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var63 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [DescriptionAr] nvarchar(2000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var64 sysname;
+    SELECT @var64 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'Description');
+    IF @var64 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var64 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [Description] nvarchar(2000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var65 sysname;
+    SELECT @var65 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[BranchSpecificMenuItems]') AND [c].[name] = N'Currency');
+    IF @var65 IS NOT NULL EXEC(N'ALTER TABLE [BranchSpecificMenuItems] DROP CONSTRAINT [' + @var65 + '];');
+    ALTER TABLE [BranchSpecificMenuItems] ALTER COLUMN [Currency] nvarchar(8) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DROP INDEX [IX_Branches_TenantId_Slug] ON [Branches];
+    DECLARE @var66 sysname;
+    SELECT @var66 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'Slug');
+    IF @var66 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var66 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [Slug] nvarchar(120) NOT NULL;
+    CREATE UNIQUE INDEX [IX_Branches_TenantId_Slug] ON [Branches] ([TenantId], [Slug]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var67 sysname;
+    SELECT @var67 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'Phone');
+    IF @var67 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var67 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [Phone] nvarchar(40) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var68 sysname;
+    SELECT @var68 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'OpeningHours');
+    IF @var68 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var68 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [OpeningHours] nvarchar(1000) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var69 sysname;
+    SELECT @var69 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'NameEn');
+    IF @var69 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var69 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [NameEn] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var70 sysname;
+    SELECT @var70 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'NameAr');
+    IF @var70 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var70 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [NameAr] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DROP INDEX [IX_Branches_TenantId_Name] ON [Branches];
+    DECLARE @var71 sysname;
+    SELECT @var71 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'Name');
+    IF @var71 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var71 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [Name] nvarchar(160) NOT NULL;
+    CREATE INDEX [IX_Branches_TenantId_Name] ON [Branches] ([TenantId], [Name]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var72 sysname;
+    SELECT @var72 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Branches]') AND [c].[name] = N'Address');
+    IF @var72 IS NOT NULL EXEC(N'ALTER TABLE [Branches] DROP CONSTRAINT [' + @var72 + '];');
+    ALTER TABLE [Branches] ALTER COLUMN [Address] nvarchar(500) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var73 sysname;
+    SELECT @var73 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AuditLogs]') AND [c].[name] = N'EntityType');
+    IF @var73 IS NOT NULL EXEC(N'ALTER TABLE [AuditLogs] DROP CONSTRAINT [' + @var73 + '];');
+    ALTER TABLE [AuditLogs] ALTER COLUMN [EntityType] nvarchar(120) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var74 sysname;
+    SELECT @var74 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AuditLogs]') AND [c].[name] = N'ActorDisplayName');
+    IF @var74 IS NOT NULL EXEC(N'ALTER TABLE [AuditLogs] DROP CONSTRAINT [' + @var74 + '];');
+    ALTER TABLE [AuditLogs] ALTER COLUMN [ActorDisplayName] nvarchar(160) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var75 sysname;
+    SELECT @var75 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AuditLogs]') AND [c].[name] = N'Action');
+    IF @var75 IS NOT NULL EXEC(N'ALTER TABLE [AuditLogs] DROP CONSTRAINT [' + @var75 + '];');
+    ALTER TABLE [AuditLogs] ALTER COLUMN [Action] nvarchar(120) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DROP INDEX [IX_AnalyticsEvents_TenantId_EventType_CreatedAtUtc] ON [AnalyticsEvents];
+    DECLARE @var76 sysname;
+    SELECT @var76 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AnalyticsEvents]') AND [c].[name] = N'EventType');
+    IF @var76 IS NOT NULL EXEC(N'ALTER TABLE [AnalyticsEvents] DROP CONSTRAINT [' + @var76 + '];');
+    ALTER TABLE [AnalyticsEvents] ALTER COLUMN [EventType] nvarchar(32) NOT NULL;
+    CREATE INDEX [IX_AnalyticsEvents_TenantId_EventType_CreatedAtUtc] ON [AnalyticsEvents] ([TenantId], [EventType], [CreatedAtUtc]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    DECLARE @var77 sysname;
+    SELECT @var77 = [d].[name]
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AnalyticsEvents]') AND [c].[name] = N'Device');
+    IF @var77 IS NOT NULL EXEC(N'ALTER TABLE [AnalyticsEvents] DROP CONSTRAINT [' + @var77 + '];');
+    ALTER TABLE [AnalyticsEvents] ALTER COLUMN [Device] nvarchar(512) NOT NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260814235803_ConstrainOperationalStrings'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260814235803_ConstrainOperationalStrings', N'8.0.19');
+END;
+GO
+
+COMMIT;
+GO
+

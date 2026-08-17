@@ -18,6 +18,7 @@ public class Order : TenantEntity
     public string Currency { get; set; } = null!;
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public DateTime? CompletedAtUtc { get; set; }
+    public byte[] RowVersion { get; set; } = [];
 
     public Branch Branch { get; set; } = null!;
     public RestaurantTable? Table { get; set; }

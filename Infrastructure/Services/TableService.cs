@@ -15,6 +15,22 @@ public sealed class TableService : ITableService
     public async Task<IReadOnlyList<RestaurantTableDto>> GetForBranchAsync(Guid branchId, CancellationToken cancellationToken = default) =>
         (await Query().Where(x => x.BranchId == branchId).OrderBy(x => x.Name).ToListAsync(cancellationToken)).Select(ToDto).ToList();
 
+    public async Task<IReadOnlyList<RestaurantTableDto>> GetForBranchesAsync(
+        IReadOnlyCollection<Guid> branchIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (branchIds.Count == 0)
+            return [];
+
+        return (await Query()
+                .Where(x => branchIds.Contains(x.BranchId))
+                .OrderBy(x => x.Branch.Name)
+                .ThenBy(x => x.Name)
+                .ToListAsync(cancellationToken))
+            .Select(ToDto)
+            .ToList();
+    }
+
     public async Task<RestaurantTableDto?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
         (await Query().SingleOrDefaultAsync(x => x.Id == id, cancellationToken)) is { } table ? ToDto(table) : null;
 

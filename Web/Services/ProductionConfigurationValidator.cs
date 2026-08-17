@@ -35,8 +35,19 @@ public static class ProductionConfigurationValidator
 
         if (!configuration.GetValue("Security:RequireHttps", false))
             throw new InvalidOperationException("Production must require HTTPS.");
+        if (configuration.GetValue("Security:PrincipalValidationCacheSeconds", 15) is < 5 or > 60)
+            throw new InvalidOperationException("Security:PrincipalValidationCacheSeconds must be between 5 and 60 seconds.");
         if (configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
             throw new InvalidOperationException("Production must apply EF migrations as a deployment step, not during application startup.");
+        if (configuration.GetValue("Database:InitializeReferenceDataOnStartup", true))
+            throw new InvalidOperationException("Production reference data must be initialized as a deployment step, not by every web replica.");
+        if (!string.Equals(configuration["Session:Provider"], "SqlServer", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Production sessions must use the shared SQL Server cache provider.");
+        Require(configuration["Security:DataProtectionKeysPath"], "Security:DataProtectionKeysPath");
+
+        var knownProxies = configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
+        if (knownProxies.Length == 0 || knownProxies.Any(x => !System.Net.IPAddress.TryParse(x, out _)))
+            throw new InvalidOperationException("Production ReverseProxy:KnownProxies must contain trusted proxy IP addresses.");
 
         if (!string.Equals(configuration["Storage:Provider"], "ObjectStorage", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Production must use the object-storage provider.");
@@ -45,13 +56,30 @@ public static class ProductionConfigurationValidator
         Require(configuration["Storage:Region"], "Storage:Region");
         Require(configuration["Storage:AccessKey"], "Storage:AccessKey");
         Require(configuration["Storage:SecretKey"], "Storage:SecretKey");
+        RequireHttpsUri(configuration["Storage:Endpoint"], "Storage:Endpoint");
+        if (configuration.GetValue<long>("Storage:MaxUploadBytes") is < 1 or > 20_971_520)
+            throw new InvalidOperationException("Storage:MaxUploadBytes must be between 1 byte and 20 MB.");
 
-        if (string.Equals(configuration["Payments:Provider"], "Sandbox", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Production must not use the sandbox payment gateway.");
-        Require(configuration["Payments:WebhookSecret"], "Payments:WebhookSecret");
+        if (!string.Equals(configuration["Payments:Provider"], "External", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Production must use the external payment gateway.");
+        RequireHttpsUri(configuration["Payments:ApiBaseUrl"], "Payments:ApiBaseUrl");
+        RequireSecret(configuration["Payments:ApiKey"], "Payments:ApiKey", 24);
+        RequireSecret(configuration["Payments:WebhookSecret"], "Payments:WebhookSecret", 32);
+        RequireHttpsUri(configuration["Payments:SuccessUrl"], "Payments:SuccessUrl");
+        RequireHttpsUri(configuration["Payments:CancelUrl"], "Payments:CancelUrl");
+        var checkoutHosts = configuration.GetSection("Payments:AllowedCheckoutHosts").Get<string[]>() ?? [];
+        if (checkoutHosts.Length == 0 || checkoutHosts.Any(x => string.IsNullOrWhiteSpace(x) || x.Contains('/') || x.Contains('*')))
+            throw new InvalidOperationException("Payments:AllowedCheckoutHosts must explicitly list trusted checkout hostnames.");
 
-        if (string.Equals(configuration["Email:Provider"], "NotConfigured", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Production email delivery must be selected through external configuration.");
+        if (!string.Equals(configuration["Email:Provider"], "Smtp", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Production email delivery must use the configured SMTP provider.");
+        RequireHttpsUri(configuration["Email:PublicBaseUrl"], "Email:PublicBaseUrl");
+        Require(configuration["Email:FromAddress"], "Email:FromAddress");
+        Require(configuration["Email:Smtp:Host"], "Email:Smtp:Host");
+        Require(configuration["Email:Smtp:Username"], "Email:Smtp:Username");
+        RequireSecret(configuration["Email:Smtp:Password"], "Email:Smtp:Password", 12);
+        if (!configuration.GetValue("Email:Smtp:EnableSsl", true))
+            throw new InvalidOperationException("Production SMTP delivery must enable TLS.");
     }
 
     private static string? GetValue(DbConnectionStringBuilder connection, params string[] keys)
@@ -69,5 +97,18 @@ public static class ProductionConfigurationValidator
     {
         if (string.IsNullOrWhiteSpace(value))
             throw new InvalidOperationException($"{key} must be supplied through external configuration.");
+    }
+
+    private static void RequireSecret(string? value, string key, int minimumLength)
+    {
+        Require(value, key);
+        if (value!.Trim().Length < minimumLength)
+            throw new InvalidOperationException($"{key} must contain at least {minimumLength} characters.");
+    }
+
+    private static void RequireHttpsUri(string? value, string key)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+            throw new InvalidOperationException($"{key} must be an absolute HTTPS URL.");
     }
 }

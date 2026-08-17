@@ -8,18 +8,22 @@ This runbook is the repeatable deployment contract for RestaurantMenuPlatform. P
 - A production SQL Server database and an identity with permission to apply the reviewed EF migration artifact.
 - HTTPS termination at the application or a trusted reverse proxy. The proxy must forward X-Forwarded-Proto, X-Forwarded-For, and the original host from configured trusted proxy addresses.
 - An S3-compatible object-storage bucket with private-by-default access and credentials scoped to the application prefix.
-- External secret injection for ConnectionStrings__DefaultConnection, Storage__AccessKey, Storage__SecretKey, and Payments__WebhookSecret.
-- A configured SMTP/provider integration before password-reset delivery can be considered operational.
+- External secret injection for SQL, object storage, payment-adapter, webhook, and SMTP credentials.
+- A persistent, private volume shared by all replicas for ASP.NET Core data-protection keys.
+- The SQL-backed distributed cache table created by the production-hardening migration.
 
 ## Required production configuration
 
 Set these values through the process environment or a secret manager:
 
     ASPNETCORE_ENVIRONMENT=Production
-    ASPNETCORE_URLS=https://+:443
+    ASPNETCORE_HTTP_PORTS=8080
     AllowedHosts=menu.example.com;*.menu.example.com
     Security__RequireHttps=true
+    Security__DataProtectionKeysPath=/var/lib/restaurant-menu-platform/keys
+    Session__Provider=SqlServer
     ConnectionStrings__DefaultConnection=<encrypted SQL Server connection string>
+    ReverseProxy__KnownProxies__0=<trusted proxy IP>
     Storage__Provider=ObjectStorage
     Storage__Endpoint=https://object-storage.example.com
     Storage__Bucket=restaurant-menu-production
@@ -28,10 +32,23 @@ Set these values through the process environment or a secret manager:
     Storage__SecretKey=<secret manager value>
     Storage__UsePathStyle=true
     Payments__Provider=External
-    Payments__WebhookSecret=<secret manager value>
+    Payments__ApiBaseUrl=https://payments-adapter.example.com
+    Payments__InitiatePath=/payments
+    Payments__ApiKey=<secret manager value>
+    Payments__WebhookSecret=<at least 32 random characters>
+    Payments__SuccessUrl=https://menu.example.com/Billing/Index?payment=success
+    Payments__CancelUrl=https://menu.example.com/Billing/Index?payment=cancelled
+    Payments__AllowedCheckoutHosts__0=<trusted provider checkout host>
     Email__Provider=Smtp
+    Email__PublicBaseUrl=https://menu.example.com
+    Email__FromAddress=no-reply@example.com
+    Email__Smtp__Host=<smtp host>
+    Email__Smtp__Port=587
+    Email__Smtp__Username=<secret manager value>
+    Email__Smtp__Password=<secret manager value>
+    Email__Smtp__EnableSsl=true
 
-The production validator rejects local SQL Server, unencrypted SQL connections, wildcard hosts, HTTP-only mode, local storage, sandbox payments, missing webhook secrets, and Development-only configuration.
+The production validator fails closed for local or unencrypted SQL, untrusted proxy settings, wildcard hosts, HTTP-only mode, memory-only sessions, missing data-protection persistence, local storage, non-external payments, weak secrets, untrusted checkout hosts, or incomplete SMTP/TLS settings.
 
 ## Database deployment
 
@@ -44,7 +61,8 @@ The production validator rejects local SQL Server, unencrypted SQL connections, 
        Remove-Item Env:EF_DESIGN_TIME
 
 3. Review the generated SQL for destructive operations and execute it with the database release process, or run scripts\Apply-ProductionMigrations.ps1 using the already injected environment variable.
-4. Confirm the target database has no pending migrations before deploying the application.
+4. Publish the reviewed artifact and run `scripts\Initialize-ProductionReferenceData.ps1` once as a deployment job. Normal web replicas never seed reference data on startup.
+5. Confirm the target database has no pending migrations before deploying the application.
 
 The web process does not apply migrations in Production. It fails closed when pending migrations are detected.
 
@@ -52,9 +70,20 @@ The web process does not apply migrations in Production. It fails closed when pe
 
        pwsh .\scripts\Publish-Production.ps1
 
-Deploy the resulting deployment\artifacts\publish directory or the Docker image. Inject configuration at runtime, start the service, then verify /health/live and /health/ready over HTTPS.
+Deploy the resulting deployment\artifacts\publish directory or the Docker image. Inject configuration at runtime, mount the data-protection volume with permissions for the non-root container user, start the service, then verify /health/live and /health/ready over HTTPS. Readiness checks both SQL and the shared distributed cache.
 
 Health responses expose only Healthy or Unhealthy, never connection details.
+
+## Payment adapter contract
+
+`Payments:ApiBaseUrl` receives an authenticated JSON checkout request containing `transactionId`, `amount`, `currency`, `successUrl`, and `cancelUrl`, plus an `Idempotency-Key` header. It must return `provider`, `providerReference`, and an HTTPS `checkoutUrl` whose hostname is allow-listed.
+
+Callbacks POST the normalized payment state to `/payments/webhook`. Every production callback must include:
+
+- `X-Payment-Timestamp`: current Unix seconds.
+- `X-Payment-Signature`: lowercase hex HMAC-SHA256 of `<timestamp>.<exact JSON body>` using `Payments:WebhookSecret` (an optional `sha256=` prefix is accepted).
+
+Signatures older than five minutes are rejected. Replayed final states are idempotent; contradictory terminal transitions are rejected.
 
 ## Storage and media
 
@@ -84,5 +113,5 @@ Database rollback is separate. Do not automatically run Down migrations in produ
 - Production SQL Server: NOT VERIFIED in this workspace because integrated SQL authentication was unavailable to the audit process.
 - Production object storage: NOT VERIFIED; the provider adapter and configuration contract are present, but no real bucket was available.
 - Production HTTPS certificate, DNS, proxy, and callback URLs: NOT VERIFIED; these belong to the hosting environment.
-- Production email delivery: NOT VERIFIED; the application has no verified provider credentials or delivery proof.
-- Production payment provider: NOT VERIFIED and intentionally not simulated; the sandbox gateway is Development-only and the production gateway remains unavailable until a real provider is integrated.
+- Production email delivery: the SMTP implementation and fail-closed configuration contract are present; credentials and a real delivery smoke check remain deployment evidence.
+- Production payment provider: the external adapter, trusted redirect, signed webhook, replay window, and idempotent status processing are present; a real provider account and callback smoke check remain deployment evidence.

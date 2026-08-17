@@ -62,10 +62,28 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
         modelBuilder.Entity<Tenant>().HasIndex(x => x.Slug).IsUnique();
+        modelBuilder.Entity<Tenant>().Property(x => x.Name).HasMaxLength(160).IsRequired();
+        modelBuilder.Entity<Tenant>().Property(x => x.NameEn).HasMaxLength(160);
+        modelBuilder.Entity<Tenant>().Property(x => x.NameAr).HasMaxLength(160);
+        modelBuilder.Entity<Tenant>().Property(x => x.Slug).HasMaxLength(120).IsRequired();
+        modelBuilder.Entity<Tenant>().Property(x => x.LogoUrl).HasMaxLength(1000);
+        modelBuilder.Entity<Tenant>().Property(x => x.CoverImageUrl).HasMaxLength(1000);
+        modelBuilder.Entity<Tenant>().Property(x => x.Phone).HasMaxLength(40);
+        modelBuilder.Entity<Tenant>().Property(x => x.Email).HasMaxLength(320);
+        modelBuilder.Entity<Tenant>().Property(x => x.Address).HasMaxLength(500);
+        modelBuilder.Entity<Tenant>().Property(x => x.Currency).HasMaxLength(8);
+        modelBuilder.Entity<Tenant>().Property(x => x.DefaultLanguage).HasMaxLength(10).IsRequired();
         modelBuilder.Entity<Tenant>().Property(x => x.IsActive).HasDefaultValue(true);
         modelBuilder.Entity<Tenant>().Property(x => x.BrandPrimaryColor).HasMaxLength(16);
         modelBuilder.Entity<Tenant>().Property(x => x.BrandAccentColor).HasMaxLength(16);
         modelBuilder.Entity<Branch>().HasIndex(x => new { x.TenantId, x.Name });
+        modelBuilder.Entity<Branch>().Property(x => x.Name).HasMaxLength(160).IsRequired();
+        modelBuilder.Entity<Branch>().Property(x => x.NameEn).HasMaxLength(160);
+        modelBuilder.Entity<Branch>().Property(x => x.NameAr).HasMaxLength(160);
+        modelBuilder.Entity<Branch>().Property(x => x.Slug).HasMaxLength(120).IsRequired();
+        modelBuilder.Entity<Branch>().Property(x => x.Address).HasMaxLength(500);
+        modelBuilder.Entity<Branch>().Property(x => x.Phone).HasMaxLength(40);
+        modelBuilder.Entity<Branch>().Property(x => x.OpeningHours).HasMaxLength(1000);
         modelBuilder.Entity<Branch>().Property(x => x.Latitude).HasPrecision(9, 6);
         modelBuilder.Entity<Branch>().Property(x => x.Longitude).HasPrecision(9, 6);
         modelBuilder.Entity<Branch>().Property(x => x.BrandPrimaryColorOverride).HasMaxLength(16);
@@ -75,6 +93,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Menu>().HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
         modelBuilder.Entity<Menu>().HasIndex(x => new { x.TenantId, x.MenuTypeCode, x.ScopeCode });
         modelBuilder.Entity<Menu>().HasAlternateKey(x => new { x.TenantId, x.Id });
+        modelBuilder.Entity<Menu>().Property(x => x.Name).HasMaxLength(160).IsRequired();
+        modelBuilder.Entity<Menu>().Property(x => x.NameEn).HasMaxLength(160);
+        modelBuilder.Entity<Menu>().Property(x => x.NameAr).HasMaxLength(160);
+        modelBuilder.Entity<Menu>().Property(x => x.Slug).HasMaxLength(120).IsRequired();
         modelBuilder.Entity<Menu>().Property(x => x.MenuTypeCode).HasMaxLength(64);
         modelBuilder.Entity<Menu>().Property(x => x.ScopeCode).HasMaxLength(64);
         modelBuilder.Entity<Menu>().Property(x => x.Description).HasMaxLength(500);
@@ -83,9 +105,21 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Menu>().Property(x => x.BrandAccentColor).HasMaxLength(16);
         modelBuilder.Entity<Menu>().HasIndex(x => new { x.TenantId, x.SortOrder });
         modelBuilder.Entity<MenuCategory>().Property(x => x.ClassificationCode).HasMaxLength(64);
+        modelBuilder.Entity<MenuCategory>().Property(x => x.Name).HasMaxLength(160).IsRequired();
+        modelBuilder.Entity<MenuCategory>().Property(x => x.NameEn).HasMaxLength(160);
+        modelBuilder.Entity<MenuCategory>().Property(x => x.NameAr).HasMaxLength(160);
+        modelBuilder.Entity<MenuCategory>().Property(x => x.Description).HasMaxLength(1000);
+        modelBuilder.Entity<MenuCategory>().Property(x => x.DescriptionAr).HasMaxLength(1000);
         modelBuilder.Entity<MenuCategory>().Property(x => x.IsActive).HasDefaultValue(true);
         modelBuilder.Entity<MenuCategory>().HasAlternateKey(x => new { x.TenantId, x.Id });
         modelBuilder.Entity<MenuItem>().Property(x => x.ProductTypeCode).HasMaxLength(64);
+        modelBuilder.Entity<MenuItem>().Property(x => x.Name).HasMaxLength(160).IsRequired();
+        modelBuilder.Entity<MenuItem>().Property(x => x.NameEn).HasMaxLength(160);
+        modelBuilder.Entity<MenuItem>().Property(x => x.NameAr).HasMaxLength(160);
+        modelBuilder.Entity<MenuItem>().Property(x => x.Description).HasMaxLength(2000);
+        modelBuilder.Entity<MenuItem>().Property(x => x.DescriptionEn).HasMaxLength(2000);
+        modelBuilder.Entity<MenuItem>().Property(x => x.DescriptionAr).HasMaxLength(2000);
+        modelBuilder.Entity<MenuItem>().Property(x => x.Currency).HasMaxLength(8).IsRequired();
         modelBuilder.Entity<MenuItem>().HasAlternateKey(x => new { x.TenantId, x.Id });
         modelBuilder.Entity<RestaurantTable>().HasAlternateKey(x => new { x.TenantId, x.Id });
         modelBuilder.Entity<RestaurantTable>().HasIndex(x => new { x.TenantId, x.BranchId, x.Name }).IsUnique();
@@ -101,13 +135,20 @@ public class AppDbContext : DbContext
             .IsUnique()
             .HasFilter("[TableId] IS NOT NULL");
         modelBuilder.Entity<User>().HasIndex(x => x.NormalizedEmail).IsUnique();
+        modelBuilder.Entity<User>().Property(x => x.Email).HasMaxLength(320).IsRequired();
+        modelBuilder.Entity<User>().Property(x => x.NormalizedEmail).HasMaxLength(320).IsRequired();
+        modelBuilder.Entity<User>().Property(x => x.DisplayName).HasMaxLength(120).IsRequired();
+        modelBuilder.Entity<User>().Property(x => x.PasswordHash).HasMaxLength(512).IsRequired();
+        modelBuilder.Entity<User>().Property(x => x.SecurityStamp).HasMaxLength(64).IsRequired();
         modelBuilder.Entity<PasswordResetToken>().HasIndex(x => x.TokenHash).IsUnique();
+        modelBuilder.Entity<PasswordResetToken>().HasIndex(x => new { x.UserId, x.UsedAtUtc, x.ExpiresAtUtc });
         modelBuilder.Entity<PasswordResetToken>()
             .HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<Membership>().HasIndex(x => new { x.TenantId, x.UserId }).IsUnique();
+        modelBuilder.Entity<Membership>().Property(x => x.Role).HasMaxLength(32);
         modelBuilder.Entity<Membership>().HasAlternateKey(x => new { x.TenantId, x.Id });
         modelBuilder.Entity<PermissionDefinition>().HasIndex(x => x.Code).IsUnique();
         modelBuilder.Entity<PermissionDefinition>().Property(x => x.Code).HasMaxLength(120).IsRequired();
@@ -160,6 +201,9 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<BranchMenu>()
             .HasKey(x => new { x.BranchId, x.MenuId });
+        modelBuilder.Entity<BranchMenu>().HasIndex(x => new { x.TenantId, x.MenuId, x.IsActive });
+        modelBuilder.Entity<MenuCategory>().HasIndex(x => new { x.TenantId, x.MenuId, x.IsActive, x.SortOrder });
+        modelBuilder.Entity<MenuItem>().HasIndex(x => new { x.TenantId, x.MenuCategoryId, x.IsAvailable, x.SortOrder });
 
         modelBuilder.Entity<BranchMenu>()
             .HasOne(x => x.Branch)
@@ -265,6 +309,9 @@ public class AppDbContext : DbContext
             .HasForeignKey(x => x.PlanId)
             .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Subscription>().HasAlternateKey(x => new { x.TenantId, x.Id });
+        modelBuilder.Entity<Subscription>().Property(x => x.Status).HasMaxLength(32);
+        modelBuilder.Entity<Subscription>().Property(x => x.PaymentProvider).HasMaxLength(64);
+        modelBuilder.Entity<Subscription>().Property(x => x.ExternalSubscriptionId).HasMaxLength(200);
 
         modelBuilder.Entity<PaymentTransaction>()
             .HasIndex(x => new { x.Provider, x.ProviderReference })
@@ -276,7 +323,15 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<PaymentTransaction>()
             .Property(x => x.Status)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasMaxLength(32);
+        modelBuilder.Entity<PaymentTransaction>().Property(x => x.Provider).HasMaxLength(64).IsRequired();
+        modelBuilder.Entity<PaymentTransaction>().Property(x => x.ProviderReference).HasMaxLength(200).IsRequired();
+        modelBuilder.Entity<PaymentTransaction>().Property(x => x.Currency).HasMaxLength(8).IsRequired();
+        modelBuilder.Entity<PaymentTransaction>().Property(x => x.CheckoutUrl).HasMaxLength(1000);
+        modelBuilder.Entity<PaymentTransaction>().Property(x => x.RowVersion).IsRowVersion();
+        modelBuilder.Entity<PaymentTransaction>().HasIndex(x => new { x.Provider, x.ProviderReference }).IsUnique();
+        modelBuilder.Entity<PaymentTransaction>().HasIndex(x => new { x.TenantId, x.Status, x.CreatedAtUtc });
 
         modelBuilder.Entity<PaymentTransaction>()
             .HasOne(x => x.Subscription)
@@ -293,9 +348,14 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<AuditLog>()
             .HasIndex(x => new { x.TenantId, x.CreatedAtUtc });
+        modelBuilder.Entity<AuditLog>().Property(x => x.Action).HasMaxLength(120).IsRequired();
+        modelBuilder.Entity<AuditLog>().Property(x => x.EntityType).HasMaxLength(120).IsRequired();
+        modelBuilder.Entity<AuditLog>().Property(x => x.ActorDisplayName).HasMaxLength(160);
 
         modelBuilder.Entity<AnalyticsEvent>()
             .HasIndex(x => new { x.TenantId, x.EventType, x.CreatedAtUtc });
+        modelBuilder.Entity<AnalyticsEvent>().Property(x => x.Device).HasMaxLength(512).IsRequired();
+        modelBuilder.Entity<AnalyticsEvent>().Property(x => x.EventType).HasMaxLength(32);
 
         modelBuilder.Entity<AnalyticsEvent>()
             .HasIndex(x => new { x.TenantId, x.BranchId, x.CreatedAtUtc });
@@ -363,6 +423,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<BranchSpecificMenuItem>()
             .Property(x => x.Price)
             .HasPrecision(18, 2);
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.Name).HasMaxLength(160).IsRequired();
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.NameEn).HasMaxLength(160);
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.NameAr).HasMaxLength(160);
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.Description).HasMaxLength(2000);
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.DescriptionEn).HasMaxLength(2000);
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.DescriptionAr).HasMaxLength(2000);
+        modelBuilder.Entity<BranchSpecificMenuItem>().Property(x => x.Currency).HasMaxLength(8).IsRequired();
 
         modelBuilder.Entity<BranchMenuItemOverride>()
             .HasOne(x => x.Branch)
@@ -436,7 +503,8 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Menu>()
             .Property(x => x.Status)
-            .HasConversion<string>();
+            .HasConversion<string>()
+            .HasMaxLength(32);
 
         modelBuilder.Entity<MenuItem>()
             .Property(x => x.Price)
@@ -552,6 +620,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Order>().HasIndex(x => new { x.TenantId, x.OrderNumber }).IsUnique();
         modelBuilder.Entity<Order>().HasIndex(x => new { x.TenantId, x.IdempotencyKey }).IsUnique();
+        modelBuilder.Entity<Order>().HasIndex(x => new { x.TenantId, x.BranchId, x.Status, x.CreatedAtUtc });
         modelBuilder.Entity<Order>().HasAlternateKey(x => new { x.TenantId, x.Id });
         modelBuilder.Entity<Order>().Property(x => x.OrderNumber).HasMaxLength(32).IsRequired();
         modelBuilder.Entity<Order>().Property(x => x.IdempotencyKey).HasMaxLength(120).IsRequired();
@@ -560,7 +629,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Order>().Property(x => x.Notes).HasMaxLength(500);
         modelBuilder.Entity<Order>().Property(x => x.Currency).HasMaxLength(3).IsRequired();
         modelBuilder.Entity<Order>().Property(x => x.Total).HasPrecision(18, 2);
-        modelBuilder.Entity<Order>().Property(x => x.Status).HasConversion<string>();
+        modelBuilder.Entity<Order>().Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+        modelBuilder.Entity<Order>().Property(x => x.RowVersion).IsRowVersion();
         modelBuilder.Entity<Order>().HasQueryFilter(x => _tenantContext.HasTenant && x.TenantId == _tenantContext.TenantId);
         modelBuilder.Entity<Order>().HasOne(x => x.Branch).WithMany().HasForeignKey(x => new { x.TenantId, x.BranchId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.NoAction);
         modelBuilder.Entity<Order>().HasOne(x => x.Menu).WithMany().HasForeignKey(x => new { x.TenantId, x.MenuId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.NoAction);
@@ -579,8 +649,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<OrderItemModifier>().HasQueryFilter(x => _tenantContext.HasTenant && x.TenantId == _tenantContext.TenantId);
         modelBuilder.Entity<OrderItemModifier>().HasOne(x => x.OrderItem).WithMany(x => x.Modifiers).HasForeignKey(x => new { x.TenantId, x.OrderItemId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<OrderItemModifier>().HasOne(x => x.ModifierOption).WithMany().HasForeignKey(x => new { x.TenantId, x.ModifierOptionId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.NoAction);
-        modelBuilder.Entity<OrderStatusHistory>().Property(x => x.FromStatus).HasConversion<string>();
-        modelBuilder.Entity<OrderStatusHistory>().Property(x => x.ToStatus).HasConversion<string>();
+        modelBuilder.Entity<OrderStatusHistory>().Property(x => x.FromStatus).HasConversion<string>().HasMaxLength(32);
+        modelBuilder.Entity<OrderStatusHistory>().Property(x => x.ToStatus).HasConversion<string>().HasMaxLength(32);
         modelBuilder.Entity<OrderStatusHistory>().Property(x => x.ActorDisplayName).HasMaxLength(160);
         modelBuilder.Entity<OrderStatusHistory>().HasQueryFilter(x => _tenantContext.HasTenant && x.TenantId == _tenantContext.TenantId);
         modelBuilder.Entity<OrderStatusHistory>().HasOne(x => x.Order).WithMany(x => x.StatusHistory).HasForeignKey(x => new { x.TenantId, x.OrderId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Cascade);

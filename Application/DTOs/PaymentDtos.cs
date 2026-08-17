@@ -29,4 +29,5 @@ public sealed record PaymentTransactionDto(
     string ProviderReference,
     PaymentStatus Status,
     DateTime CreatedAtUtc,
-    DateTime? CompletedAtUtc);
+    DateTime? CompletedAtUtc,
+    string? CheckoutUrl = null);

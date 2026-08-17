@@ -1,6 +1,7 @@
 namespace RestaurantMenuPlatform.Application.DTOs;
 
 public sealed record PublicMenuDto(
+    Guid BranchId,
     string RestaurantName,
     string RestaurantSlug,
     string BranchName,
@@ -23,6 +24,7 @@ public sealed record PublicMenuDto(
 }
 
 public sealed record PublicMenuSectionDto(
+    Guid Id,
     string MenuName,
     string? MenuTypeCode,
     string? Description,
@@ -139,3 +141,5 @@ public sealed record PublicMenuAnalyticsContext(
     IReadOnlyList<PublicMenuAnalyticsMenuContext> Menus);
 
 public sealed record PublicMenuAnalyticsMenuContext(Guid MenuId, IReadOnlyList<Guid> MenuItemIds);
+
+public sealed record PublicOrderingContextSummary(Guid BranchId);

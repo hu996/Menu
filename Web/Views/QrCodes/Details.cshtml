@@ -1,39 +1,39 @@
 @model RestaurantMenuPlatform.Application.DTOs.QrCodeDto
 @{
-    ViewData["Title"] = "QR details";
-    var tableLabel = Model.TableName ?? Model.TableLabel ?? "Legacy / unresolved";
+    ViewData["Title"] = UiText.Get("QR details");
+    var tableLabel = Model.TableName ?? Model.TableLabel ?? UiText.Get("Legacy / unresolved");
     var isLegacy = Model.TableId is null;
     var assetUrl = Url.Action("Asset", "QrCodes", new { id = Model.Id, format = "svg" });
 }
 <div class="page-header page-header-actions">
-    <div><span class="eyebrow">QR details</span><h1>@tableLabel</h1><p class="muted">@Model.RestaurantName · @Model.BranchName</p></div>
-    <a class="btn btn-secondary" asp-action="Index" asp-route-branchId="@Model.BranchId" asp-route-tableId="@Model.TableId">Back to QR codes</a>
+    <div><span class="eyebrow">@UiText.Get("QR details")</span><h1>@tableLabel</h1><p class="muted">@Model.RestaurantName · @Model.BranchName</p></div>
+    <a class="btn btn-secondary" asp-action="Index" asp-route-branchId="@Model.BranchId" asp-route-tableId="@Model.TableId">@UiText.Get("Back to QR codes")</a>
 </div>
 <section class="detail-card qr-detail-layout">
-    <div class="qr-detail-preview"><img src="@assetUrl" alt="QR code for @tableLabel" /></div>
+    <div class="qr-detail-preview"><img src="@assetUrl" alt="@UiText.Get("QR code for") @tableLabel" /></div>
     <div class="qr-detail-copy">
-        <span class="eyebrow">Identity</span>
+        <span class="eyebrow">@UiText.Get("Identity")</span>
         <dl class="detail-list">
-            <div><dt>Status</dt><dd><span class="status @(Model.IsActive ? "status-live" : "status-muted")">@(Model.IsActive ? "Active" : "Inactive")</span></dd></div>
-            <div><dt>Restaurant</dt><dd>@Model.RestaurantName</dd></div>
-            <div><dt>Branch</dt><dd>@Model.BranchName</dd></div>
-            <div><dt>Table</dt><dd>@tableLabel</dd></div>
-            <div><dt>Created</dt><dd>@Model.CreatedAtUtc?.ToLocalTime().ToString("g")</dd></div>
-            <div><dt>Updated</dt><dd>@(Model.UpdatedAtUtc.HasValue ? Model.UpdatedAtUtc.Value.ToLocalTime().ToString("g") : "Not updated")</dd></div>
-            <div><dt>Public URL</dt><dd><code class="qr-url">@Model.TargetUrl</code></dd></div>
+            <div><dt>@UiText.Get("Status")</dt><dd><span class="status @(Model.IsActive ? "status-live" : "status-muted")">@(Model.IsActive ? UiText.Get("Active") : UiText.Get("Inactive"))</span></dd></div>
+            <div><dt>@UiText.Get("Restaurant")</dt><dd>@Model.RestaurantName</dd></div>
+            <div><dt>@UiText.Get("Branch")</dt><dd>@Model.BranchName</dd></div>
+            <div><dt>@UiText.Get("Table")</dt><dd>@tableLabel</dd></div>
+            <div><dt>@UiText.Get("Created")</dt><dd>@Model.CreatedAtUtc?.ToLocalTime().ToString("g")</dd></div>
+            <div><dt>@UiText.Get("Updated")</dt><dd>@(Model.UpdatedAtUtc.HasValue ? Model.UpdatedAtUtc.Value.ToLocalTime().ToString("g") : UiText.Get("Not updated"))</dd></div>
+            <div><dt>@UiText.Get("Public URL")</dt><dd><code class="qr-url">@Model.TargetUrl</code></dd></div>
         </dl>
         @if (isLegacy)
         {
-            <div class="feedback feedback-warning"><strong>Legacy / unresolved QR.</strong><span>This QR has no authoritative table and cannot create table-specific orders.</span></div>
+            <div class="feedback feedback-warning"><strong>@UiText.Get("Legacy / unresolved QR.")</strong><span>@UiText.Get("This QR has no authoritative table and cannot create table-specific orders.")</span></div>
         }
         else
         {
             <div class="action-row">
-                <form asp-action="SetActive" method="post" class="inline-form" data-confirm data-confirm-title="@(Model.IsActive ? "Deactivate QR code" : "Reactivate QR code")" data-confirm-message="@(Model.IsActive ? $"Deactivate QR for {Model.TableName}? / تعطيل رمز QR للطاولة {Model.TableName}؟" : $"Reactivate QR for {Model.TableName}? / إعادة تفعيل رمز QR للطاولة {Model.TableName}؟")" data-confirm-label="@(Model.IsActive ? "Deactivate" : "Reactivate / إعادة تفعيل")" data-confirm-tone="@(Model.IsActive ? "danger" : "warning")">
+                <form asp-action="SetActive" method="post" class="inline-form" data-confirm data-confirm-title="@(Model.IsActive ? UiText.Get("Deactivate QR code") : UiText.Get("Reactivate QR code"))" data-confirm-message="@(Model.IsActive ? $"{UiText.Get("Deactivate QR for")} {tableLabel}{UiText.Get("Question mark")}" : $"{UiText.Get("Reactivate QR for")} {tableLabel}{UiText.Get("Question mark")}")" data-confirm-label="@(Model.IsActive ? UiText.Get("Deactivate") : UiText.Get("Reactivate"))" data-confirm-tone="@(Model.IsActive ? "danger" : "warning")">
                     <input type="hidden" name="id" value="@Model.Id" />
                     <input type="hidden" name="isActive" value="@(Model.IsActive ? "false" : "true")" />
                     @Html.AntiForgeryToken()
-                    <button class="btn @(Model.IsActive ? "btn-danger" : "btn-primary")" type="submit">@(Model.IsActive ? "Deactivate" : "Reactivate / إعادة تفعيل")</button>
+                    <button class="btn @(Model.IsActive ? "btn-danger" : "btn-primary")" type="submit">@(Model.IsActive ? UiText.Get("Deactivate") : UiText.Get("Reactivate"))</button>
                 </form>
             </div>
         }

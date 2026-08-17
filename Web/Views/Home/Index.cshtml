@@ -3,19 +3,18 @@
 }
 
 <div class="hero">
-    <span class="eyebrow">Restaurant SaaS</span>
-    <h1>Digital menus, branches and QR codes — built for multi-location restaurants.</h1>
+    <span class="eyebrow">@UiText.Get("Restaurant operations platform")</span>
+    <h1>@UiText.Get("Run every restaurant menu from one secure workspace.")</h1>
     <p>
-        Clean Architecture starter built with ASP.NET Core MVC, SQL Server and EF Core.
-        Tenant isolation is part of the foundation.
+        @UiText.Get("Publish bilingual digital menus, manage branches and tables, and keep guest orders moving in real time.")
     </p>
-    <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Open Demo Dashboard</a>
-    <a class="btn btn-secondary" asp-controller="Restaurant" asp-action="Create">Create a restaurant</a>
+    <a class="btn btn-primary" asp-controller="Account" asp-action="Login">@UiText.Get("Sign in to your workspace")</a>
+    <a class="btn btn-secondary" href="#platform-capabilities">@UiText.Get("Explore capabilities")</a>
 </div>
 
-<div class="grid">
-    <div class="card"><strong>Multi-Tenant</strong><span>Tenant-aware data access with EF Core query filters.</span></div>
-    <div class="card"><strong>Global Menu</strong><span>One menu can be shared across multiple branches.</span></div>
-    <div class="card"><strong>QR Ready</strong><span>Stable QR records are separated from menu content.</span></div>
-    <div class="card"><strong>Subscriptions</strong><span>Plans and subscription entities are included from day one.</span></div>
+<div class="grid" id="platform-capabilities">
+    <div class="card"><strong>@UiText.Get("Bilingual guest experience")</strong><span>@UiText.Get("Switch complete screens between Arabic and English with matching menu content.")</span></div>
+    <div class="card"><strong>@UiText.Get("Multi-branch control")</strong><span>@UiText.Get("Share menus across branches while keeping local pricing and availability under control.")</span></div>
+    <div class="card"><strong>@UiText.Get("Table ordering")</strong><span>@UiText.Get("Issue secure table QR codes and move guest orders through the kitchen workflow.")</span></div>
+    <div class="card"><strong>@UiText.Get("Commercial governance")</strong><span>@UiText.Get("Plans, permissions, audit history, and tenant isolation are enforced by the platform.")</span></div>
 </div>

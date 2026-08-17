@@ -70,7 +70,8 @@ public sealed class BillingService : IBillingService
                 x.ProviderReference,
                 x.Status,
                 x.CreatedAtUtc,
-                x.CompletedAtUtc))
+                x.CompletedAtUtc,
+                x.CheckoutUrl))
             .ToListAsync(cancellationToken);
 
         var subscriptionDtos = subscriptions.Select(ToDto).ToList();

@@ -1,24 +1,33 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Globalization;
 using RestaurantMenuPlatform.Application.DTOs;
 using RestaurantMenuPlatform.Application.Interfaces;
 using RestaurantMenuPlatform.Web.Models;
+using RestaurantMenuPlatform.Web.Services;
 
 namespace RestaurantMenuPlatform.Web.Controllers;
 
 [Route("menu/{restaurantSlug}/{branchSlug}")]
+[EnableRateLimiting("public-ordering")]
 public sealed class PublicOrderingController : Controller
 {
     private const string LastCheckoutKey = "public-last-checkout-key";
     private readonly IPublicMenuService _publicMenuService;
     private readonly IOrderService _orderService;
     private readonly IQrCodeService _qrCodeService;
+    private readonly IAnalyticsService _analyticsService;
 
-    public PublicOrderingController(IPublicMenuService publicMenuService, IOrderService orderService, IQrCodeService qrCodeService)
+    public PublicOrderingController(
+        IPublicMenuService publicMenuService,
+        IOrderService orderService,
+        IQrCodeService qrCodeService,
+        IAnalyticsService analyticsService)
     {
         _publicMenuService = publicMenuService;
         _orderService = orderService;
         _qrCodeService = qrCodeService;
+        _analyticsService = analyticsService;
     }
 
     [HttpGet("product/{itemId:guid}")]
@@ -40,6 +49,13 @@ public sealed class PublicOrderingController : Controller
             cancellationToken);
         if (item is null)
             return NotFound();
+
+        await _analyticsService.TrackMenuItemViewAsync(
+            context.BranchId,
+            item.MenuId,
+            item.Id,
+            Request.Headers.UserAgent.ToString(),
+            cancellationToken);
 
         var basket = await BuildCartAsync(restaurantSlug, branchSlug, cancellationToken)
             ?? new CartDto(restaurantSlug, branchSlug, context.BranchId, [], 0, string.Empty);
@@ -315,7 +331,7 @@ public sealed class PublicOrderingController : Controller
         }
         catch (ArgumentException exception)
         {
-            ModelState.AddModelError(string.Empty, exception.Message);
+            ModelState.AddModelError(string.Empty, UiText.Feedback(exception.Message));
             return View(model);
         }
     }
@@ -349,7 +365,7 @@ public sealed class PublicOrderingController : Controller
         catch (ArgumentException exception)
         {
             PublicCartSession.Write(HttpContext.Session, new PublicCartState());
-            TempData["Error"] = exception.Message;
+            TempData["Error"] = UiText.Feedback(exception.Message);
             return new CartDto(restaurantSlug, branchSlug, context.BranchId, [], 0, string.Empty, publicContext?.TableId, publicContext?.TableName, publicContext?.TableNameAr, publicContext?.QrCodeId, publicContext?.QrCodeCode);
         }
     }
@@ -368,8 +384,8 @@ public sealed class PublicOrderingController : Controller
         return context;
     }
 
-    private async Task<PublicMenuAnalyticsContext?> GetContextAsync(string restaurantSlug, string branchSlug, CancellationToken cancellationToken) =>
-        await _publicMenuService.GetAnalyticsContextAsync(restaurantSlug, branchSlug, cancellationToken);
+    private async Task<PublicOrderingContextSummary?> GetContextAsync(string restaurantSlug, string branchSlug, CancellationToken cancellationToken) =>
+        await _publicMenuService.GetOrderingContextAsync(restaurantSlug, branchSlug, cancellationToken);
 
     private IActionResult MutationSuccess(
         CartDto cart,
@@ -448,13 +464,12 @@ public sealed class PublicOrderingController : Controller
         return RedirectToAction(nameof(Cart), new { restaurantSlug, branchSlug, lang = Language() });
     }
 
-    private string Language() => string.Equals(Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+    private static string Language() => string.Equals(
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+        "ar",
+        StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
     private bool IsArabic => Language() == "ar";
-    private string Local(string english, string arabic) => IsArabic ? DecodeLegacyArabic(arabic) : english;
-    private static string DecodeLegacyArabic(string value) =>
-        value.IndexOf('\u00D8') >= 0 || value.IndexOf('\u00D9') >= 0 || value.IndexOf('\u00E2') >= 0
-            ? Encoding.UTF8.GetString(Encoding.Latin1.GetBytes(value))
-            : value;
+    private string Local(string english, string arabic) => IsArabic ? arabic : english;
     private bool WantsJson() =>
         string.Equals(Request.Headers["X-Requested-With"].ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase) ||
         Request.Headers["Accept"].ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);

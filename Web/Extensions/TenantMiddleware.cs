@@ -27,25 +27,33 @@ public sealed class TenantMiddleware
 
         if (!string.IsNullOrWhiteSpace(mediaTenantIdValue))
         {
-            if (!Guid.TryParse(mediaTenantIdValue, out var mediaTenantId) ||
-                !await db.Tenants.IgnoreQueryFilters().AnyAsync(x => x.Id == mediaTenantId && x.IsActive))
-            {
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                return;
-            }
-
-            if (context.User.Identity?.IsAuthenticated == true &&
-                (!Guid.TryParse(context.User.FindFirstValue("tenant_id"), out var authenticatedTenantId) ||
-                 authenticatedTenantId != mediaTenantId))
+            if (!Guid.TryParse(mediaTenantIdValue, out var mediaTenantId))
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }
 
             if (context.User.Identity?.IsAuthenticated == true)
+            {
+                if (!Guid.TryParse(context.User.FindFirstValue("tenant_id"), out var authenticatedTenantId) ||
+                    authenticatedTenantId != mediaTenantId)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+
                 tenantContext.SetTenant(mediaTenantId);
+            }
             else
+            {
+                if (!await db.Tenants.IgnoreQueryFilters().AnyAsync(x => x.Id == mediaTenantId && x.IsActive))
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
                 tenantContext.SetPublicTenant(mediaTenantId);
+            }
+
             await _next(context);
             return;
         }
@@ -101,21 +109,12 @@ public sealed class TenantMiddleware
 
             if (!string.IsNullOrWhiteSpace(requestedSlug))
             {
-                var requestedTenant = await db.Tenants
-                    .IgnoreQueryFilters()
-                    .AsNoTracking()
-                    .SingleOrDefaultAsync(x => x.Slug == requestedSlug && x.IsActive);
-
-                if (requestedTenant is null || requestedTenant.Id != authenticatedTenantId)
+                var authenticatedSlug = context.User.FindFirstValue("tenant_slug");
+                if (!string.Equals(requestedSlug, authenticatedSlug, StringComparison.OrdinalIgnoreCase))
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
                 }
-            }
-            else if (!await db.Tenants.IgnoreQueryFilters().AnyAsync(x => x.Id == authenticatedTenantId && x.IsActive))
-            {
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                return;
             }
 
             tenantContext.SetTenant(authenticatedTenantId);

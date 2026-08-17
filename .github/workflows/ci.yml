@@ -1,0 +1,45 @@
+name: production-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-publish-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - name: Restore locked dependencies
+        run: dotnet restore RestaurantMenuPlatform.sln --locked-mode
+      - name: Build release
+        run: dotnet build Web/Web.csproj -c Release --no-restore
+      - name: Audit NuGet dependencies
+        run: dotnet list Web/Web.csproj package --vulnerable --include-transitive
+      - name: Publish release
+        run: dotnet publish Web/Web.csproj -c Release --no-build --no-restore -o artifacts/publish
+      - name: Verify development settings are excluded
+        shell: bash
+        run: test ! -f artifacts/publish/appsettings.Development.json
+      - name: Build production container
+        run: docker build --pull --tag restaurant-menu-platform:${{ github.sha }} .
+

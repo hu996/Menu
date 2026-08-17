@@ -1,7 +1,7 @@
 @model RestaurantMenuPlatform.Web.Models.CheckoutViewModel
 @{
     Layout = null;
-    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var isArabic = UiText.IsArabic;
     var language = isArabic ? "ar" : "en";
     var title = isArabic ? "تأكيد الطلب" : "Checkout";
     var nameLabel = isArabic ? "الاسم" : "Name";
@@ -20,7 +20,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>@title</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="public-menu-body">
     <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
@@ -56,6 +56,6 @@
             </aside>
         </section>
     </main>
-    <script src="~/js/site.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>

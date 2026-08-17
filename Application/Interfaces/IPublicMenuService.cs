@@ -16,7 +16,7 @@ public interface IPublicMenuService
         string? language = null,
         CancellationToken cancellationToken = default);
 
-    Task<PublicMenuAnalyticsContext?> GetAnalyticsContextAsync(
+    Task<PublicOrderingContextSummary?> GetOrderingContextAsync(
         string restaurantSlug,
         string branchSlug,
         CancellationToken cancellationToken = default);

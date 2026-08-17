@@ -9,8 +9,8 @@
 <form asp-action="Preview" method="post" class="form-stack premium-form pricing-form">
     <div asp-validation-summary="ModelOnly" class="validation"></div>
     <section class="form-section"><div class="form-section-heading"><span class="eyebrow">Adjustment scope</span><h2>Pricing change</h2><p>Select the server-resolved scope, operation, and value before previewing.</p></div><div class="form-grid">
-        <div><label asp-for="ScopeCode">Scope</label><select asp-for="ScopeCode"><option value="">Select scope</option>@foreach (var scope in Model.Scopes) { <option value="@scope.Code">@scope.NameEn</option> }</select></div>
-        <div><label asp-for="OperationCode">Operation</label><select asp-for="OperationCode"><option value="">Select operation</option>@foreach (var operation in Model.Operations) { <option value="@operation.Code">@operation.NameEn</option> }</select></div>
+        <div><label asp-for="ScopeCode">Scope</label><select asp-for="ScopeCode"><option value="">Select scope</option>@foreach (var scope in Model.Scopes) { <option value="@scope.Code">@UiText.Business(scope.NameEn, scope.NameEn, scope.NameAr)</option> }</select></div>
+        <div><label asp-for="OperationCode">Operation</label><select asp-for="OperationCode"><option value="">Select operation</option>@foreach (var operation in Model.Operations) { <option value="@operation.Code">@UiText.Business(operation.NameEn, operation.NameEn, operation.NameAr)</option> }</select></div>
         <div><label asp-for="CategoryId">Category</label><select asp-for="CategoryId"><option value="">All / not applicable</option>@foreach (var category in Model.Categories) { <option value="@category.Id">@UiText.Business(category.Name, category.Name, category.NameAr)</option> }</select></div>
         <div><label asp-for="BranchId">Branch</label><select asp-for="BranchId"><option value="">Global price</option>@foreach (var branch in Model.Branches) { <option value="@branch.Id">@UiText.Business(branch.Name, branch.Name, branch.NameAr)</option> }</select></div>
         <div><label asp-for="Value">Value</label><input asp-for="Value" type="number" min="0" step="0.01" /></div>

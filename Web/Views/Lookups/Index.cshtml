@@ -22,7 +22,7 @@
         <option value="">All lookup types</option>
         @foreach (var type in Model.Types)
         {
-            <option value="@type.Code" selected="@(string.Equals(type.Code, Model.Page.Type, StringComparison.Ordinal) ? "selected" : null)">@type.NameEn (@type.Code)</option>
+            <option value="@type.Code" selected="@(string.Equals(type.Code, Model.Page.Type, StringComparison.Ordinal) ? "selected" : null)">@UiText.Business(type.NameEn, type.NameEn, type.NameAr) (@type.Code)</option>
         }
     </select></label>
     <label class="filter-field"><span>@UiText.Get("Status")</span><select name="isActive">
@@ -44,15 +44,14 @@
 
 <div class="table-shell">
     <table class="data-table">
-        <thead><tr><th>Type</th><th>Code</th><th>English</th><th>Arabic</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Type</th><th>Code</th><th>Name</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
         @foreach (var value in Model.Page.Items)
         {
             <tr>
                 <td data-label="@UiText.Get("Type")">@value.Type @if (value.IsGlobal) { <span class="status status-muted">Global</span> }</td>
                 <td data-label="@UiText.Get("Code")"><code>@value.Code</code></td>
-                <td data-label="@UiText.Get("English")">@value.NameEn</td>
-                <td data-label="@UiText.Get("Arabic")" dir="rtl">@value.NameAr</td>
+                <td data-label="@UiText.Get("Name")">@UiText.Business(value.NameEn, value.NameEn, value.NameAr)</td>
                 <td data-label="@UiText.Get("Description")">@value.Description</td>
                 <td data-label="@UiText.Get("Order")">@value.SortOrder</td>
                 <td data-label="@UiText.Get("Status")"><span class="status @(value.IsActive ? "status-live" : "status-muted")">@(value.IsActive ? "Active" : "Inactive")</span></td>

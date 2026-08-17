@@ -14,10 +14,10 @@ public sealed class UserCreateViewModel
     [Required, StringLength(120, MinimumLength = 2)]
     public string DisplayName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(320)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, StringLength(100, MinimumLength = 10), DataType(DataType.Password)]
+    [Required, StringLength(128, MinimumLength = 10), DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
     [Required]
@@ -36,7 +36,7 @@ public sealed class UserEditViewModel
     [Required, StringLength(120, MinimumLength = 2)]
     public string DisplayName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(320)]
     public string Email { get; set; } = string.Empty;
 
     [Required]

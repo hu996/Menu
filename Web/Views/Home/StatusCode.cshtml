@@ -6,6 +6,7 @@
     <span class="eyebrow">Status @Model.StatusCode</span>
     <h1>@Model.Title</h1>
     <p class="muted">@Model.Message</p>
+    @if (!string.IsNullOrWhiteSpace(Model.RequestId)) { <p class="muted"><small>@UiText.Get("Request ID"): <code>@Model.RequestId</code></small></p> }
     @if (Model.StatusCode == 401)
     {
         <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Sign in</a>

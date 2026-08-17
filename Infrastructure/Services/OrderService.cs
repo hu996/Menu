@@ -1,3 +1,5 @@
+using System.Data;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using RestaurantMenuPlatform.Application.DTOs;
 using RestaurantMenuPlatform.Application.Interfaces;
@@ -103,7 +105,7 @@ public sealed class OrderService : IOrderService
         var strategy = _db.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
             idempotentOrder = await _db.Orders.Include(x => x.Branch).ThenInclude(x => x.Tenant).Include(x => x.Table).Include(x => x.QrCode).Include(x => x.Items).ThenInclude(x => x.Modifiers).Include(x => x.Items).ThenInclude(x => x.MenuItem)
                 .SingleOrDefaultAsync(x => x.IdempotencyKey == input.IdempotencyKey.Trim(), cancellationToken);
             if (idempotentOrder is not null && idempotentOrder.BranchId != input.BranchId)
@@ -214,6 +216,28 @@ public sealed class OrderService : IOrderService
             query = query.Where(x => x.CreatedAtUtc < dateTo.Value);
         var orders = await query.OrderBy(x => x.Status == OrderStatus.Pending ? 0 : 1).ThenByDescending(x => x.CreatedAtUtc)
             .Take(100).ToListAsync(cancellationToken);
+        return orders.Select(ToStaff).ToList();
+    }
+
+    public async Task<IReadOnlyList<StaffOrderDto>> GetKitchenOrdersAsync(
+        Guid? branchScopeId,
+        CancellationToken cancellationToken = default)
+    {
+        var activeStatuses = new[]
+        {
+            OrderStatus.Pending,
+            OrderStatus.Accepted,
+            OrderStatus.Preparing,
+            OrderStatus.Ready
+        };
+        var query = StaffQuery().Where(x => activeStatuses.Contains(x.Status));
+        if (branchScopeId.HasValue)
+            query = query.Where(x => x.BranchId == branchScopeId.Value);
+
+        var orders = await query
+            .OrderBy(x => x.CreatedAtUtc)
+            .Take(200)
+            .ToListAsync(cancellationToken);
         return orders.Select(ToStaff).ToList();
     }
 
@@ -343,15 +367,11 @@ public sealed class OrderService : IOrderService
             throw new ArgumentException("This table QR code is no longer active. Scan the current QR code and try again.");
     }
 
-    private async Task<string> NextOrderNumberAsync(CancellationToken cancellationToken)
+    private static Task<string> NextOrderNumberAsync(CancellationToken cancellationToken)
     {
-        for (var attempt = 0; attempt < 5; attempt++)
-        {
-            var candidate = $"RM-{Random.Shared.Next(100000, 999999)}";
-            if (!await _db.Orders.AnyAsync(x => x.OrderNumber == candidate, cancellationToken))
-                return candidate;
-        }
-        return $"RM-{DateTime.UtcNow:MMddHHmmssfff}";
+        cancellationToken.ThrowIfCancellationRequested();
+        var entropy = Convert.ToHexString(RandomNumberGenerator.GetBytes(6));
+        return Task.FromResult($"RM-{DateTime.UtcNow:yyMMdd}-{entropy}");
     }
 
     private IQueryable<Order> StaffQuery() => _db.Orders.AsNoTracking().Include(x => x.Branch).Include(x => x.Table).Include(x => x.QrCode).Include(x => x.Items).ThenInclude(x => x.Modifiers);

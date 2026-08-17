@@ -3,7 +3,7 @@
     Layout = null;
     var menu = Model.Menu;
     var basket = Model.Basket;
-    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var isArabic = UiText.IsArabic;
     var language = isArabic ? "ar" : "en";
     var menuLabel = isArabic ? "القائمة" : "Menu";
     var menusLabel = isArabic ? "القوائم" : "Menus";
@@ -45,7 +45,7 @@
     <meta name="theme-color" content="@(menu.BrandPrimaryColor ?? "#2E241F")" />
     <title>@menu.RestaurantName · @menu.MenuName</title>
     <style>:root { --public-primary: @(menu.BrandPrimaryColor ?? "#2E241F"); --public-accent: @(menu.BrandAccentColor ?? "#B88A44"); }</style>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="public-menu-body">
     <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
@@ -65,8 +65,14 @@
                 <p class="public-hero-subtitle">@menu.Menus.Count @((menu.Menus.Count == 1 ? menuLabel : menusLabel))</p>
                 <span class="public-route">@menu.RestaurantSlug / @menu.BranchSlug</span>
                 <div class="language-switch" aria-label="@languageLabel">
-                    <a href="?lang=en@(queryContext)" hreflang="en" lang="en" aria-current="@(isArabic ? "false" : "true")">English</a>
-                    <a href="?lang=ar@(queryContext)" hreflang="ar" lang="ar" dir="rtl" aria-current="@(isArabic ? "true" : "false")">العربية</a>
+                    @if (isArabic)
+                    {
+                        <a href="?lang=en@(queryContext)" hreflang="en" lang="en">English</a>
+                    }
+                    else
+                    {
+                        <a href="?lang=ar@(queryContext)" hreflang="ar" lang="ar" dir="rtl">العربية</a>
+                    }
                 </div>
             </div>
             <a class="public-basket-entry" data-public-basket-link href="@basketUrl" aria-label="@basketLabel">
@@ -215,6 +221,6 @@
         <div><strong><span data-basket-count>@itemCount</span> @itemLabel</strong><small data-basket-total>@basket.Total.ToString("0.00") @basket.Currency</small></div>
         <a class="public-action" href="@basketUrl">@viewBasketLabel <span aria-hidden="true">→</span></a>
     </div>
-    <script src="~/js/site.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>

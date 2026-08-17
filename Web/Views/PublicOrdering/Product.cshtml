@@ -2,7 +2,7 @@
 @using System.Globalization
 @{
     Layout = null;
-    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var isArabic = UiText.IsArabic;
     var language = isArabic ? "ar" : "en";
     var item = Model.Item;
     var basket = Model.Basket;
@@ -38,7 +38,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>@item.Name · @title</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="public-menu-body">
     <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>
@@ -164,6 +164,6 @@
         <div><strong><span data-basket-count>@itemCount</span> @itemLabel</strong><small data-basket-total>@basket.Total.ToString("0.00") @basket.Currency</small></div>
         <a class="public-action" href="@basketUrl">@viewBasket <span aria-hidden="true">→</span></a>
     </div>
-    <script src="~/js/site.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>

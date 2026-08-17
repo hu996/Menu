@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 using RestaurantMenuPlatform.Application.DTOs;
 using RestaurantMenuPlatform.Application.Interfaces;
 using RestaurantMenuPlatform.Web.Models;
+using RestaurantMenuPlatform.Web.Services;
 
 namespace RestaurantMenuPlatform.Web.Controllers;
 
@@ -33,13 +35,9 @@ public sealed class PublicMenuController : Controller
         var menu = await _publicMenuService.GetAsync(
             restaurantSlug,
             branchSlug,
-            Request.Query["lang"].ToString(),
+            CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
             cancellationToken);
         if (menu is null)
-            return NotFound();
-
-        var analyticsContext = await _publicMenuService.GetAnalyticsContextAsync(restaurantSlug, branchSlug, cancellationToken);
-        if (analyticsContext is null)
             return NotFound();
 
         PublicOrderingContextDto? publicContext = null;
@@ -74,15 +72,14 @@ public sealed class PublicMenuController : Controller
         }
 
         var userAgent = Request.Headers.UserAgent.ToString();
-        foreach (var trackedMenu in analyticsContext.Menus)
-        {
-            await _analyticsService.TrackMenuViewAsync(analyticsContext.BranchId, trackedMenu.MenuId, userAgent, cancellationToken);
-            await _analyticsService.TrackMenuItemViewsAsync(analyticsContext.BranchId, trackedMenu.MenuId, trackedMenu.MenuItemIds, userAgent, cancellationToken);
-        }
-        if (sourceIsQr)
-            await _analyticsService.TrackQrScanAsync(analyticsContext.BranchId, userAgent, cancellationToken);
+        await _analyticsService.TrackPublicMenuViewAsync(
+            menu.BranchId,
+            menu.Menus.Select(x => x.Id).ToArray(),
+            sourceIsQr,
+            userAgent,
+            cancellationToken);
 
-        var basket = await BuildBasketAsync(analyticsContext.BranchId, restaurantSlug, branchSlug, publicContext, cancellationToken);
+        var basket = await BuildBasketAsync(menu.BranchId, restaurantSlug, branchSlug, publicContext, cancellationToken);
         return View(new PublicMenuPageViewModel(menu, basket));
     }
 
@@ -113,7 +110,7 @@ public sealed class PublicMenuController : Controller
         catch (ArgumentException exception)
         {
             HttpContext.Session.Remove(PublicCartSession.Key);
-            TempData["Error"] = exception.Message;
+            TempData["Error"] = UiText.Feedback(exception.Message);
             return new CartDto(restaurantSlug, branchSlug, branchId, [], 0, string.Empty, publicContext?.TableId, publicContext?.TableName, publicContext?.TableNameAr, publicContext?.QrCodeId, publicContext?.QrCodeCode);
         }
     }

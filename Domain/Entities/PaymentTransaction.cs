@@ -11,8 +11,10 @@ public class PaymentTransaction : TenantEntity
     public string Currency { get; set; } = null!;
     public string Provider { get; set; } = null!;
     public string ProviderReference { get; set; } = null!;
+    public string? CheckoutUrl { get; set; }
     public PaymentStatus Status { get; set; } = PaymentStatus.Initiated;
     public DateTime? CompletedAtUtc { get; set; }
+    public byte[] RowVersion { get; set; } = [];
 
     public Subscription? Subscription { get; set; }
 }

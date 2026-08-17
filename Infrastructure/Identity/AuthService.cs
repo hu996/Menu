@@ -32,7 +32,8 @@ internal sealed class AuthService : IAuthService
         string password,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 320 ||
+            string.IsNullOrWhiteSpace(password) || password.Length > 128)
             return new(null, "invalid_credentials");
 
         var normalizedEmail = email.Trim().ToUpperInvariant();
@@ -40,10 +41,13 @@ internal sealed class AuthService : IAuthService
             .SingleOrDefaultAsync(x => x.NormalizedEmail == normalizedEmail, cancellationToken);
 
         if (user is null || !user.IsActive)
+        {
+            _passwordService.PerformDummyVerification(password);
             return new(null, "invalid_credentials");
+        }
         if (user.LockoutEndUtc.HasValue && user.LockoutEndUtc.Value > DateTime.UtcNow)
             return new(null, "invalid_credentials");
-        if (!_passwordService.Verify(password, user.PasswordHash))
+        if (!_passwordService.Verify(password, user.PasswordHash, out var needsRehash))
         {
             user.FailedLoginCount++;
             if (user.FailedLoginCount >= 5)
@@ -63,7 +67,7 @@ internal sealed class AuthService : IAuthService
         user.FailedLoginCount = 0;
         user.LockoutEndUtc = null;
         user.LastLoginAtUtc = DateTime.UtcNow;
-        if (_passwordService.NeedsRehash(user.PasswordHash))
+        if (needsRehash)
             user.PasswordHash = _passwordService.Hash(password);
         await _db.SaveChangesAsync(cancellationToken);
         var memberships = await _db.Memberships

@@ -17,7 +17,9 @@ public sealed class LanguageController : Controller
                 IsEssential = true,
                 Expires = DateTimeOffset.UtcNow.AddYears(1),
                 SameSite = SameSiteMode.Lax,
-                HttpOnly = false
+                HttpOnly = false,
+                Secure = Request.IsHttps,
+                Path = "/"
             });
 
         return Url.IsLocalUrl(returnUrl) ? Redirect(returnUrl!) : Redirect("/");

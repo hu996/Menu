@@ -26,6 +26,9 @@ internal sealed class PasswordResetService : IPasswordResetService
         string email,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 320)
+            return new PasswordResetRequestResult(null);
+
         var normalizedEmail = email.Trim().ToUpperInvariant();
         var user = await _db.Users
             .SingleOrDefaultAsync(x => x.NormalizedEmail == normalizedEmail && x.IsActive, cancellationToken);
@@ -34,11 +37,18 @@ internal sealed class PasswordResetService : IPasswordResetService
         if (user is null)
             return new PasswordResetRequestResult(null);
 
+        var now = DateTime.UtcNow;
         var activeTokens = await _db.PasswordResetTokens
             .Where(x => x.UserId == user.Id && x.UsedAtUtc == null)
             .ToListAsync(cancellationToken);
+
+        // Do not let repeated anonymous requests flood a real user's inbox.
+        // The endpoint still returns the same generic confirmation response.
+        if (activeTokens.Any(x => x.CreatedAtUtc >= now.AddMinutes(-5) && x.ExpiresAtUtc > now))
+            return new PasswordResetRequestResult(null);
+
         foreach (var activeToken in activeTokens)
-            activeToken.UsedAtUtc = DateTime.UtcNow;
+            activeToken.UsedAtUtc = now;
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=')
@@ -48,13 +58,11 @@ internal sealed class PasswordResetService : IPasswordResetService
         {
             UserId = user.Id,
             TokenHash = Hash(rawToken),
-            ExpiresAtUtc = DateTime.UtcNow.Add(TokenLifetime)
+            ExpiresAtUtc = now.Add(TokenLifetime)
         });
         await _db.SaveChangesAsync(cancellationToken);
 
-        // A real email provider can be wired here later. Web decides whether a
-        // development-only reset link may be rendered; production remains generic.
-        return new PasswordResetRequestResult(rawToken);
+        return new PasswordResetRequestResult(rawToken, user.Email, user.DisplayName);
     }
 
     public async Task<bool> ResetAsync(

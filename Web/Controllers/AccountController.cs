@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RestaurantMenuPlatform.Application.Interfaces;
 using RestaurantMenuPlatform.Domain.Enums;
 using RestaurantMenuPlatform.Domain.Interfaces;
@@ -10,26 +11,33 @@ using RestaurantMenuPlatform.Web.Models;
 
 namespace RestaurantMenuPlatform.Web.Controllers;
 
+[EnableRateLimiting("authentication")]
 public sealed class AccountController : Controller
 {
     private readonly IAuthService _authService;
     private readonly IPasswordResetService _passwordResetService;
+    private readonly IEmailSender _emailSender;
     private readonly ITenantContext _tenantContext;
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AccountController> _logger;
 
     public AccountController(
         IAuthService authService,
         IPasswordResetService passwordResetService,
+        IEmailSender emailSender,
         ITenantContext tenantContext,
         IWebHostEnvironment environment,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<AccountController> logger)
     {
         _authService = authService;
         _passwordResetService = passwordResetService;
+        _emailSender = emailSender;
         _tenantContext = tenantContext;
         _environment = environment;
         _configuration = configuration;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -142,10 +150,49 @@ public sealed class AccountController : Controller
             return View(model);
 
         var result = await _passwordResetService.RequestAsync(model.Email, cancellationToken);
-        var resetUrl = !_environment.IsDevelopment() || result.DevelopmentToken is null
-            ? null
-            : Url.Action(nameof(ResetPassword), "Account", new { token = result.DevelopmentToken }, Request.Scheme);
-        return View("ForgotPasswordConfirmation", new ForgotPasswordConfirmationViewModel(resetUrl));
+        string? developmentResetUrl = null;
+        if (result.Token is not null && result.RecipientEmail is not null)
+        {
+            if (_environment.IsDevelopment())
+            {
+                developmentResetUrl = Url.Action(
+                    nameof(ResetPassword),
+                    "Account",
+                    new { token = result.Token },
+                    Request.Scheme);
+            }
+            else
+            {
+                var publicBaseUrl = _configuration["Email:PublicBaseUrl"]?.TrimEnd('/');
+                if (string.IsNullOrWhiteSpace(publicBaseUrl))
+                {
+                    _logger.LogError(
+                        "Password reset email delivery skipped because Email:PublicBaseUrl is not configured. Request {RequestId}.",
+                        HttpContext.TraceIdentifier);
+                }
+                else
+                {
+                    var resetUrl = $"{publicBaseUrl}/Account/ResetPassword?token={Uri.EscapeDataString(result.Token)}";
+                    try
+                    {
+                        await _emailSender.SendPasswordResetAsync(
+                            result.RecipientEmail,
+                            result.RecipientName ?? result.RecipientEmail,
+                            resetUrl,
+                            cancellationToken);
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.LogError(
+                            exception,
+                            "Password reset email delivery failed for request {RequestId}.",
+                            HttpContext.TraceIdentifier);
+                    }
+                }
+            }
+        }
+
+        return View("ForgotPasswordConfirmation", new ForgotPasswordConfirmationViewModel(developmentResetUrl));
     }
 
     [AllowAnonymous]

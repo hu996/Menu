@@ -79,35 +79,31 @@ public sealed class MediaController : Controller
             fileName.Contains('\\'))
             return NotFound();
 
-        var tenant = await _db.Tenants
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Slug == restaurantSlug && x.IsActive, cancellationToken);
-        if (tenant is null || _tenantContext.TenantId != tenant.Id)
+        var tenantId = _tenantContext.IsPublic ? _tenantContext.TenantId : null;
+        if (!tenantId.HasValue)
             return NotFound();
 
-        var image = (await _db.MenuItemImages
-                .AsNoTracking()
-                .Where(x => x.TenantId == tenant.Id)
-                .ToListAsync(cancellationToken))
-            .SingleOrDefault(x => string.Equals(Path.GetFileName(x.Url), fileName, StringComparison.Ordinal));
+        var internalUrl = $"/media/{tenantId.Value:D}/menu-items/{fileName}";
+        var image = await _db.MenuItemImages
+            .AsNoTracking()
+            .Where(x =>
+                x.TenantId == tenantId.Value &&
+                x.Url == internalUrl &&
+                x.MenuItem.MenuCategory.IsActive &&
+                x.MenuItem.MenuCategory.Menu.Status == MenuStatus.Published &&
+                x.MenuItem.MenuCategory.Menu.BranchMenus.Any(assignment =>
+                    assignment.IsActive && assignment.Branch.IsActive))
+            .Select(x => new { x.Url, x.ContentType })
+            .SingleOrDefaultAsync(cancellationToken);
         if (image is null)
             return NotFound();
 
-        var belongsToPublishedMenu = await _db.MenuItems
-            .AsNoTracking()
-            .Where(item => item.Id == image.MenuItemId &&
-                           item.MenuCategory.IsActive &&
-                           item.MenuCategory.Menu.Status == MenuStatus.Published &&
-                           item.MenuCategory.Menu.BranchMenus.Any(assignment =>
-                               assignment.IsActive && assignment.Branch.IsActive))
-            .AnyAsync(cancellationToken);
-        if (!belongsToPublishedMenu)
+        var stream = await _storage.OpenReadAsync(tenantId.Value, image.Url, cancellationToken);
+        if (stream is null)
             return NotFound();
 
-        var stream = await _storage.OpenReadAsync(tenant.Id, image.Url, cancellationToken);
-        return stream is null
-            ? NotFound()
-            : File(stream, image.ContentType ?? "application/octet-stream", enableRangeProcessing: true);
+        Response.Headers.CacheControl = "public,max-age=604800,immutable";
+        return File(stream, image.ContentType ?? "application/octet-stream", enableRangeProcessing: true);
     }
 
     [AllowAnonymous]
@@ -120,28 +116,30 @@ public sealed class MediaController : Controller
             fileName.Contains('\\'))
             return NotFound();
 
-        var tenant = await _db.Tenants.IgnoreQueryFilters()
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Slug == restaurantSlug && x.IsActive, cancellationToken);
-        if (tenant is null || _tenantContext.TenantId != tenant.Id)
+        var tenantId = _tenantContext.IsPublic ? _tenantContext.TenantId : null;
+        if (!tenantId.HasValue)
             return NotFound();
 
-        var image = (await _db.TenantBrandingImages.IgnoreQueryFilters()
-                .AsNoTracking()
-                .Where(x => x.TenantId == tenant.Id)
-                .ToListAsync(cancellationToken))
-            .SingleOrDefault(x => string.Equals(Path.GetFileName(x.Url), fileName, StringComparison.Ordinal));
+        var internalUrl = $"/media/{tenantId.Value:D}/branding/{fileName}";
+        var image = await _db.TenantBrandingImages
+            .AsNoTracking()
+            .Where(x =>
+                x.TenantId == tenantId.Value &&
+                x.Url == internalUrl &&
+                _db.Menus.Any(menu =>
+                    menu.TenantId == tenantId.Value &&
+                    menu.Status == MenuStatus.Published &&
+                    menu.BranchMenus.Any(assignment => assignment.IsActive && assignment.Branch.IsActive)))
+            .Select(x => new { x.Url, x.ContentType })
+            .SingleOrDefaultAsync(cancellationToken);
         if (image is null)
             return NotFound();
 
-        var published = await _db.Menus.IgnoreQueryFilters()
-            .AnyAsync(x => x.TenantId == tenant.Id && x.Status == MenuStatus.Published && x.BranchMenus.Any(y => y.IsActive && y.Branch.IsActive), cancellationToken);
-        if (!published)
+        var stream = await _storage.OpenBrandingReadAsync(tenantId.Value, image.Url, cancellationToken);
+        if (stream is null)
             return NotFound();
 
-        var stream = await _storage.OpenBrandingReadAsync(tenant.Id, image.Url, cancellationToken);
-        return stream is null
-            ? NotFound()
-            : File(stream, image.ContentType, enableRangeProcessing: true);
+        Response.Headers.CacheControl = "public,max-age=604800,immutable";
+        return File(stream, image.ContentType, enableRangeProcessing: true);
     }
 }

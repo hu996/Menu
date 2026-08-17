@@ -6,5 +6,6 @@
     <span class="eyebrow">Error @Model.StatusCode</span>
     <h1>@Model.Title</h1>
     <p class="muted">@Model.Message</p>
+    @if (!string.IsNullOrWhiteSpace(Model.RequestId)) { <p class="muted"><small>@UiText.Get("Request ID"): <code>@Model.RequestId</code></small></p> }
     <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Return home</a>
 </section>

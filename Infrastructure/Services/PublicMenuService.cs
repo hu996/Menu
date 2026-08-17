@@ -136,6 +136,7 @@ public sealed class PublicMenuService : IPublicMenuService
                         categoryIds.Contains(x.CategoryId) &&
                         x.IsVisible)
             .ToListAsync(cancellationToken);
+        var branchItemsByCategory = branchSpecificItems.ToLookup(x => x.CategoryId);
 
         var sections = menus
             .OrderBy(x => x.SortOrder)
@@ -163,8 +164,7 @@ public sealed class PublicMenuService : IPublicMenuService
                                 selectedLanguage))
                             .Where(item => item is not null)
                             .Select(item => item!);
-                        var branchItems = branchSpecificItems
-                            .Where(x => x.CategoryId == category.Id)
+                        var branchItems = branchItemsByCategory[category.Id]
                             .OrderBy(x => x.SortOrder)
                             .Select(x => ToBranchItem(x, selectedLanguage));
                         return new PublicMenuCategoryDto(
@@ -177,6 +177,7 @@ public sealed class PublicMenuService : IPublicMenuService
                     .Where(category => category.Items.Count > 0)
                     .ToList();
                 return new PublicMenuSectionDto(
+                    menu.Id,
                     Localized(menu.Name, menu.NameEn, menu.NameAr, selectedLanguage) ?? string.Empty,
                     menu.MenuTypeCode,
                     Localized(menu.Description, menu.Description, menu.DescriptionAr, selectedLanguage),
@@ -185,6 +186,7 @@ public sealed class PublicMenuService : IPublicMenuService
             .ToList();
 
         return new PublicMenuDto(
+            branch.Id,
             Localized(tenant.Name, tenant.NameEn, tenant.NameAr, selectedLanguage) ?? string.Empty,
             tenant.Slug,
             Localized(branch.Name, branch.NameEn, branch.NameAr, selectedLanguage) ?? string.Empty,
@@ -196,40 +198,22 @@ public sealed class PublicMenuService : IPublicMenuService
             ToPublicImageUrl(tenant.CoverImageUrl, tenant.Id, tenant.Slug));
     }
 
-    public async Task<PublicMenuAnalyticsContext?> GetAnalyticsContextAsync(
+    public async Task<PublicOrderingContextSummary?> GetOrderingContextAsync(
         string restaurantSlug,
         string branchSlug,
         CancellationToken cancellationToken = default)
     {
-        var tenant = await _db.Tenants.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Slug == restaurantSlug && x.IsActive, cancellationToken);
-        if (tenant is null)
-            return null;
-
-        var branch = await _db.Branches.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.TenantId == tenant.Id && x.Slug == branchSlug && x.IsActive, cancellationToken);
-        if (branch is null)
-            return null;
-
-        var menuIds = await _db.BranchMenus.AsNoTracking()
-            .Where(x => x.BranchId == branch.Id && x.IsActive)
-            .Join(_db.Menus.AsNoTracking().Where(x => x.Status == Domain.Enums.MenuStatus.Published), x => x.MenuId, x => x.Id, (_, value) => value.Id)
-            .ToListAsync(cancellationToken);
-        var menus = await _db.Menus.AsNoTracking().AsSplitQuery()
-            .Where(x => menuIds.Contains(x.Id) && x.Status == Domain.Enums.MenuStatus.Published)
-            .Include(x => x.Categories)
-                .ThenInclude(x => x.Items)
-            .ToListAsync(cancellationToken);
-        if (menus.Count == 0)
-            return null;
-        return new PublicMenuAnalyticsContext(
-            branch.Id,
-            menus.Select(menu => new PublicMenuAnalyticsMenuContext(
-                menu.Id,
-                menu.Categories
-                    .Where(x => x.IsActive)
-                    .SelectMany(x => x.Items.Where(item => item.IsAvailable).Select(item => item.Id))
-                    .ToList())).ToList());
+        return await _db.BranchMenus
+            .AsNoTracking()
+            .Where(x => x.IsActive &&
+                        x.Branch.IsActive &&
+                        x.Branch.Slug == branchSlug &&
+                        x.Branch.Tenant.IsActive &&
+                        x.Branch.Tenant.Slug == restaurantSlug &&
+                        x.Menu.Status == Domain.Enums.MenuStatus.Published)
+            .Select(x => new PublicOrderingContextSummary(x.BranchId))
+            .Distinct()
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     private static PublicMenuItemDto? ToItem(

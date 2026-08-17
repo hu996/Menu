@@ -7,5 +7,10 @@ obj/
 appsettings.Development.json
 *.db
 *.log
+.env
+.env.*
+!.env.example
+!deployment/.env.production.example
+**/keys/
 **/build-*/
 deployment/artifacts/publish/

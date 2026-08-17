@@ -27,7 +27,7 @@ public sealed class PlatformRestaurantCreateViewModel
     [Phone]
     public string? Phone { get; set; }
 
-    [EmailAddress]
+    [EmailAddress, StringLength(320)]
     public string? Email { get; set; }
 
     public string? Address { get; set; }
@@ -47,11 +47,11 @@ public sealed class PlatformRestaurantCreateViewModel
     [Display(Name = "Owner name")]
     public string OwnerName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(320)]
     [Display(Name = "Owner email")]
     public string OwnerEmail { get; set; } = string.Empty;
 
-    [DataType(DataType.Password), StringLength(100, MinimumLength = 10)]
+    [DataType(DataType.Password), StringLength(128, MinimumLength = 10)]
     [Display(Name = "Initial password")]
     public string? OwnerPassword { get; set; }
 

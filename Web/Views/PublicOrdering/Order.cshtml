@@ -1,7 +1,7 @@
 @model RestaurantMenuPlatform.Application.DTOs.OrderReceiptDto
 @{
     Layout = null;
-    var isArabic = string.Equals(Context.Request.Query["lang"].ToString(), "ar", StringComparison.OrdinalIgnoreCase);
+    var isArabic = UiText.IsArabic;
     var language = isArabic ? "ar" : "en";
     var received = isArabic ? "تم استلام الطلب" : "Order received";
     var total = isArabic ? "الإجمالي" : "Total";
@@ -10,10 +10,11 @@
     var statusLabel = isArabic ? statusKey switch
     {
         "pending" => "قيد الانتظار",
-        "confirmed" => "تم التأكيد",
+        "accepted" => "تم القبول",
         "preparing" => "قيد التحضير",
         "ready" => "جاهز",
         "completed" => "مكتمل",
+        "rejected" => "مرفوض",
         "cancelled" => "ملغى",
         _ => Model.Status
     } : Model.Status;
@@ -25,7 +26,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta http-equiv="refresh" content="15" />
     <title>@received</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="public-menu-body">
     <a class="skip-link" href="#main-content">@(isArabic ? "الانتقال إلى المحتوى" : "Skip to content")</a>

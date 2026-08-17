@@ -33,12 +33,12 @@ public sealed class OrdersController : Controller
         var branchScopeId = GetBranchScope();
         var visibleBranches = await _branchService.GetAllAsync(branchScopeId, cancellationToken);
         var effectiveBranchId = branchId ?? branchScopeId;
-        var tables = new List<RestaurantMenuPlatform.Application.DTOs.RestaurantTableDto>();
         var tableBranches = effectiveBranchId.HasValue
             ? visibleBranches.Where(x => x.Id == effectiveBranchId.Value)
             : visibleBranches;
-        foreach (var branch in tableBranches)
-            tables.AddRange(await _tableService.GetForBranchAsync(branch.Id, cancellationToken));
+        var tables = await _tableService.GetForBranchesAsync(
+            tableBranches.Select(x => x.Id).ToArray(),
+            cancellationToken);
 
         var orders = await _orderService.GetStaffOrdersAsync(
             branchScopeId,
@@ -95,6 +95,10 @@ public sealed class OrdersController : Controller
         {
             TempData["Error"] = exception.Message;
         }
+        catch (InvalidOperationException exception)
+        {
+            TempData["Error"] = exception.Message;
+        }
         var tenantSlug = User.FindFirst("tenant_slug")?.Value;
         return string.IsNullOrWhiteSpace(tenantSlug)
             ? RedirectToAction(nameof(Details), new { id })
@@ -104,12 +108,8 @@ public sealed class OrdersController : Controller
     [HttpGet]
     public async Task<IActionResult> Kitchen(CancellationToken cancellationToken)
     {
-        var branchScope = GetBranchScope();
-        var statuses = new[] { OrderStatus.Pending, OrderStatus.Accepted, OrderStatus.Preparing, OrderStatus.Ready };
-        var queue = new List<RestaurantMenuPlatform.Application.DTOs.StaffOrderDto>();
-        foreach (var status in statuses)
-            queue.AddRange(await _orderService.GetStaffOrdersAsync(branchScope, status: status.ToString(), cancellationToken: cancellationToken));
-        return View(queue.OrderBy(x => x.Status).ThenBy(x => x.CreatedAtUtc).ToList());
+        var queue = await _orderService.GetKitchenOrdersAsync(GetBranchScope(), cancellationToken);
+        return View(queue);
     }
 
     [HttpGet]

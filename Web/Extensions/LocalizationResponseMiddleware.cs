@@ -11,6 +11,15 @@ public sealed class LocalizationResponseMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // Public ordering pages localize their copy and business data explicitly.
+        // English responses need no translation either. Avoid buffering these hot
+        // paths so the server can stream the response directly to the client.
+        if (!UiText.IsArabic || context.Request.Path.StartsWithSegments("/menu"))
+        {
+            await _next(context);
+            return;
+        }
+
         var originalBody = context.Response.Body;
         await using var buffer = new MemoryStream();
         context.Response.Body = buffer;

@@ -18,6 +18,7 @@ public interface IOrderService
         DateTime? dateFrom = null,
         DateTime? dateTo = null,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StaffOrderDto>> GetKitchenOrdersAsync(Guid? branchScopeId, CancellationToken cancellationToken = default);
     Task<StaffOrderDto?> GetStaffOrderAsync(Guid id, Guid? branchId, CancellationToken cancellationToken = default);
     Task<StaffOrderDto?> TransitionAsync(Guid id, OrderStatus targetStatus, Guid? branchId, Guid? actorUserId, string? actorDisplayName, CancellationToken cancellationToken = default);
 }

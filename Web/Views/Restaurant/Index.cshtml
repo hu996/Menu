@@ -27,8 +27,8 @@
     <section class="form-section">
         <div class="form-section-heading"><span class="eyebrow">Defaults</span><h2>Language and currency</h2><p>These values come from the database-backed lookup collections.</p></div>
         <div class="form-grid">
-            <div class="form-field"><label asp-for="Currency"></label><select asp-for="Currency">@foreach (var currency in Model.Currencies) { <option value="@currency.Code">@currency.NameEn (@currency.Code)</option> }</select><span asp-validation-for="Currency" class="field-validation"></span></div>
-            <div class="form-field"><label asp-for="DefaultLanguage"></label><select asp-for="DefaultLanguage">@foreach (var language in Model.Languages) { <option value="@language.Code">@language.NameEn</option> }</select><span asp-validation-for="DefaultLanguage" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="Currency"></label><select asp-for="Currency">@foreach (var currency in Model.Currencies) { <option value="@currency.Code">@UiText.Business(currency.NameEn, currency.NameEn, currency.NameAr) (@currency.Code)</option> }</select><span asp-validation-for="Currency" class="field-validation"></span></div>
+            <div class="form-field"><label asp-for="DefaultLanguage"></label><select asp-for="DefaultLanguage">@foreach (var language in Model.Languages) { <option value="@language.Code">@UiText.Business(language.NameEn, language.NameEn, language.NameAr)</option> }</select><span asp-validation-for="DefaultLanguage" class="field-validation"></span></div>
         </div>
     </section>
     @Html.AntiForgeryToken()
